@@ -1,0 +1,18 @@
+{
+  "name": "taskflow",
+  "version": "1.0.0",
+  "description": "Application TaskFlow - Page d'authentification et gestion de tâches",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "taskflow",
+    "auth",
+    "javascript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
