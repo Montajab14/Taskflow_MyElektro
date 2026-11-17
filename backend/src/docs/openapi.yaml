@@ -19,6 +19,8 @@ servers:
 tags:
   - name: Auth
   - name: Tasks
+  - name: Stats
+    description: Bonus B1, B3, B4
 components:
   securitySchemes:
     bearerAuth:
@@ -76,6 +78,11 @@ components:
           nullable: true
           description: Date réelle au format YYYY-MM-DD, ou null
           example: '2026-12-15'
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+          description: Bonus B1
     TaskPatch:
       type: object
       minProperties: 1
@@ -85,6 +92,7 @@ components:
         status: { type: string, enum: [todo, doing, done] }
         description: { type: string }
         dueDate: { type: string, format: date, nullable: true }
+        priority: { type: string, enum: [low, medium, high] }
     Task:
       type: object
       properties:
@@ -92,6 +100,7 @@ components:
         title: { type: string, example: Réviser la soutenance }
         description: { type: string, example: '' }
         status: { type: string, enum: [todo, doing, done] }
+        priority: { type: string, enum: [low, medium, high] }
         dueDate: { type: string, format: date, nullable: true, example: '2026-12-15' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
@@ -192,8 +201,39 @@ paths:
     get:
       tags: [Tasks]
       summary: Lister ses tâches
-      description: Ne renvoie que les tâches du compte connecté, les plus récentes d'abord.
+      description: Ne renvoie que les tâches du compte connecté. Les filtres sont le bonus B1.
       security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          description: Un ou plusieurs statuts séparés par des virgules
+          schema: { type: string, example: todo,doing }
+        - name: priority
+          in: query
+          description: Une ou plusieurs priorités séparées par des virgules
+          schema: { type: string, example: high }
+        - name: dueAfter
+          in: query
+          description: Échéance au plus tôt ce jour (inclus)
+          schema: { type: string, format: date }
+        - name: dueBefore
+          in: query
+          description: Échéance au plus tard ce jour (inclus)
+          schema: { type: string, format: date }
+        - name: overdue
+          in: query
+          description: true pour ne garder que les tâches non terminées dont l'échéance est passée
+          schema: { type: string, enum: ['true', 'false'] }
+        - name: q
+          in: query
+          description: Recherche dans le titre (insensible à la casse)
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: -createdAt
+            enum: [createdAt, -createdAt, dueDate, -dueDate, title, -title, updatedAt, -updatedAt]
       responses:
         '200':
           description: Tableau des tâches
@@ -202,6 +242,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       tags: [Tasks]
@@ -281,3 +322,32 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /api/stats/summary:
+    get:
+      tags: [Stats]
+      summary: Compteurs de tâches (B1)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Compteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer, example: 12 }
+                  byStatus:
+                    type: object
+                    properties:
+                      todo: { type: integer, example: 5 }
+                      doing: { type: integer, example: 3 }
+                      done: { type: integer, example: 4 }
+                  byPriority:
+                    type: object
+                    properties:
+                      low: { type: integer }
+                      medium: { type: integer }
+                      high: { type: integer }
+                  overdue: { type: integer, example: 2 }
+                  completionRate: { type: number, example: 0.333 }
+        '401': { $ref: '#/components/responses/Unauthorized' }

@@ -85,6 +85,11 @@ test('Bob ne peut pas créer une tâche au nom d\'Alice en envoyant "owner"', as
   expect(aliceList.body.map((t) => t.title)).toEqual(['Secret d\'Alice']);
 });
 
+test('les statistiques de Bob ignorent les tâches d\'Alice', async () => {
+  const res = await api().get('/api/stats/summary').set('Authorization', bob.auth);
+  expect(res.body.total).toBe(0);
+});
+
 test('sans jeton, aucune route de tâches n\'est accessible', async () => {
   const calls = [
     api().get('/api/tasks'),
@@ -93,6 +98,7 @@ test('sans jeton, aucune route de tâches n\'est accessible', async () => {
     api().put(`/api/tasks/${aliceTask.id}`).send({ title: 'x', status: 'todo' }),
     api().patch(`/api/tasks/${aliceTask.id}`).send({ status: 'done' }),
     api().delete(`/api/tasks/${aliceTask.id}`),
+    api().get('/api/stats/summary'),
   ];
   const results = await Promise.all(calls);
   results.forEach((res) => expect(res.status).toBe(401));

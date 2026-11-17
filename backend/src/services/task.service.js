@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Task = require('../models/Task');
 const AppError = require('../utils/AppError');
+const { today } = require('../utils/date');
 
 /*
  * Toutes les requêtes filtrent sur { owner: ownerId }. Une tâche d'un autre
@@ -13,8 +14,31 @@ function ownedTaskQuery(ownerId, taskId) {
   return { _id: taskId, owner: ownerId };
 }
 
-async function list(ownerId) {
-  return Task.find({ owner: ownerId }).sort({ createdAt: -1, _id: -1 });
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function list(ownerId, filters = {}) {
+  const query = { owner: ownerId };
+
+  if (filters.status) query.status = { $in: filters.status };
+  if (filters.priority) query.priority = { $in: filters.priority };
+  if (filters.dueBefore || filters.dueAfter) {
+    query.dueDate = {};
+    if (filters.dueAfter) query.dueDate.$gte = filters.dueAfter;
+    if (filters.dueBefore) query.dueDate.$lte = filters.dueBefore;
+  }
+  if (filters.overdue === true) {
+    query.dueDate = { ...query.dueDate, $lt: today() };
+    query.status = { $in: (filters.status || ['todo', 'doing']).filter((s) => s !== 'done') };
+  }
+  if (filters.q) query.title = { $regex: escapeRegex(filters.q), $options: 'i' };
+
+  const sort = filters.sort || '-createdAt';
+  const direction = sort.startsWith('-') ? -1 : 1;
+  const field = sort.replace(/^-/, '');
+
+  return Task.find(query).sort({ [field]: direction, _id: direction });
 }
 
 async function create(ownerId, data) {
@@ -35,7 +59,7 @@ async function update(ownerId, taskId, data, { replace }) {
   const task = await getById(ownerId, taskId);
 
   const next = replace
-    ? { description: '', dueDate: null, ...data }
+    ? { description: '', dueDate: null, priority: 'medium', ...data }
     : data;
 
   task.set(next);

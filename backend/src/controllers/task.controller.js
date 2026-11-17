@@ -1,10 +1,10 @@
 const taskService = require('../services/task.service');
-const { validateTask } = require('../validators/task.validator');
+const { validateTask, validateListQuery } = require('../validators/task.validator');
 
 // req.user.id vient du JWT vérifié par le middleware, jamais du corps de la requête.
 
 async function list(req, res) {
-  const tasks = await taskService.list(req.user.id);
+  const tasks = await taskService.list(req.user.id, validateListQuery(req.query));
   res.status(200).json(tasks);
 }
 
