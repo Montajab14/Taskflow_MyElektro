@@ -1,10 +1,10 @@
 const habitService = require('../services/habit.service');
 const {
-  validateHabit, validateCompletionDate, validateCompletionRange,
+  validateHabit, validateCompletionDate, validateCompletionRange, validateTodayQuery,
 } = require('../validators/habit.validator');
 
 async function list(req, res) {
-  res.status(200).json(await habitService.list(req.user.id));
+  res.status(200).json(await habitService.list(req.user.id, validateTodayQuery(req.query)));
 }
 
 async function create(req, res) {
@@ -13,7 +13,8 @@ async function create(req, res) {
 }
 
 async function getOne(req, res) {
-  res.status(200).json(await habitService.getById(req.user.id, req.params.id));
+  const habit = await habitService.getWithStats(req.user.id, req.params.id, validateTodayQuery(req.query));
+  res.status(200).json(habit);
 }
 
 async function replace(req, res) {

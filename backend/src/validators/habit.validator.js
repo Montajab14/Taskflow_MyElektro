@@ -89,4 +89,15 @@ function validateCompletionRange(query) {
   return { from: query.from, to: query.to };
 }
 
-module.exports = { validateHabit, validateCompletionDate, validateCompletionRange };
+/** ?tz= des routes qui calculent les séries : renvoie « aujourd'hui » dans ce fuseau. */
+function validateTodayQuery(query) {
+  const errors = [];
+  const timezone = query.tz ?? 'UTC';
+  checkTimezone(timezone, errors);
+  if (errors.length) throw AppError.badRequest('Paramètres invalides', errors);
+  return { today: todayIn(timezone) };
+}
+
+module.exports = {
+  validateHabit, validateCompletionDate, validateCompletionRange, validateTodayQuery,
+};

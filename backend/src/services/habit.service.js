@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Habit = require('../models/Habit');
 const HabitCompletion = require('../models/HabitCompletion');
 const AppError = require('../utils/AppError');
+const { addDays } = require('../utils/date');
 
 /*
  * Même règle que pour les tâches : toutes les requêtes filtrent sur le
@@ -14,8 +15,59 @@ function ownedHabitQuery(ownerId, habitId) {
   return { _id: habitId, owner: ownerId };
 }
 
-async function list(ownerId) {
-  return Habit.find({ owner: ownerId }).sort({ createdAt: 1, _id: 1 });
+/**
+ * Statistiques d'une habitude à partir de ses jours cochés, triés et uniques.
+ * La série en cours compte les jours consécutifs jusqu'à aujourd'hui, ou
+ * jusqu'à hier : elle n'est pas rompue tant que la journée n'est pas finie.
+ */
+function computeStats(dates, today) {
+  let longestStreak = 0;
+  let run = 0;
+  dates.forEach((d, i) => {
+    run = i > 0 && addDays(dates[i - 1], 1) === d ? run + 1 : 1;
+    longestStreak = Math.max(longestStreak, run);
+  });
+
+  const last = dates.at(-1) ?? null;
+  let currentStreak = 0;
+  if (last === today || last === addDays(today, -1)) {
+    currentStreak = 1;
+    for (let i = dates.length - 1; i > 0 && addDays(dates[i - 1], 1) === dates[i]; i -= 1) {
+      currentStreak += 1;
+    }
+  }
+
+  return {
+    total: dates.length,
+    currentStreak,
+    longestStreak,
+    lastCompletedOn: last,
+    doneToday: last === today,
+  };
+}
+
+/** Ajoute { stats } à chaque habitude, en une seule agrégation sur les réalisations. */
+async function withStats(ownerId, habits, today) {
+  const rows = await HabitCompletion.aggregate([
+    { $match: { owner: new mongoose.Types.ObjectId(ownerId), habit: { $in: habits.map((h) => h._id) } } },
+    { $sort: { date: 1 } },
+    { $group: { _id: '$habit', dates: { $push: '$date' } } },
+  ]);
+  const datesByHabit = new Map(rows.map((r) => [r._id.toString(), r.dates]));
+  return habits.map((h) => ({
+    ...h.toJSON(),
+    stats: computeStats(datesByHabit.get(h.id) || [], today),
+  }));
+}
+
+async function list(ownerId, { today }) {
+  const habits = await Habit.find({ owner: ownerId }).sort({ createdAt: 1, _id: 1 });
+  return withStats(ownerId, habits, today);
+}
+
+async function getWithStats(ownerId, habitId, { today }) {
+  const [habit] = await withStats(ownerId, [await getById(ownerId, habitId)], today);
+  return habit;
 }
 
 async function create(ownerId, data) {
@@ -82,5 +134,14 @@ async function removeCompletion(ownerId, habitId, date) {
 }
 
 module.exports = {
-  list, create, getById, update, remove, listCompletions, addCompletion, removeCompletion,
+  list,
+  create,
+  getById,
+  getWithStats,
+  update,
+  remove,
+  listCompletions,
+  addCompletion,
+  removeCompletion,
+  computeStats,
 };
