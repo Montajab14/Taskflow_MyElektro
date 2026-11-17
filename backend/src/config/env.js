@@ -16,6 +16,11 @@ const config = {
     .map((o) => o.trim())
     .filter(Boolean),
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 10,
+  // Échecs d'inscription ou de connexion tolérés par IP sur la fenêtre, avant un 429.
+  authRateLimit: {
+    max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 10,
+    windowMs: (Number(process.env.AUTH_RATE_LIMIT_WINDOW_MIN) || 15) * 60 * 1000,
+  },
 };
 
 // On refuse de démarrer sans secret : un JWT signé avec une valeur par défaut

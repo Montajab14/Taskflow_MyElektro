@@ -22,6 +22,10 @@ class AppError extends Error {
     return new AppError(404, message);
   }
 
+  static tooManyRequests(message) {
+    return new AppError(429, message);
+  }
+
   static conflict(message) {
     return new AppError(409, message);
   }

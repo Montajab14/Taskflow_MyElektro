@@ -11,9 +11,15 @@ const statsRoutes = require('./routes/stats.routes');
 const habitRoutes = require('./routes/habit.routes');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
+const { createAuthLimiter } = require('./middlewares/rateLimit');
 
-function createApp() {
+/**
+ * options.authRateLimit permet aux tests de choisir leur propre limite ;
+ * sinon, celle de la configuration (variables AUTH_RATE_LIMIT_*).
+ */
+function createApp(options = {}) {
   const app = express();
+  const authLimiter = createAuthLimiter(options.authRateLimit || config.authRateLimit);
 
   app.use(helmet());
   app.use(cors({ origin: config.corsOrigins }));
@@ -24,6 +30,7 @@ function createApp() {
   app.get('/api/docs.json', (req, res) => res.json(openapi));
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
 
+  app.use(['/api/auth/login', '/api/auth/register'], authLimiter);
   app.use('/api/auth', authRoutes);
   app.use('/api/tasks', taskRoutes);
   app.use('/api/stats', statsRoutes);
