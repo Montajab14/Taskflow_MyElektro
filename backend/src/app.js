@@ -4,6 +4,7 @@ const helmet = require('helmet');
 
 const config = require('./config/env');
 const authRoutes = require('./routes/auth.routes');
+const taskRoutes = require('./routes/task.routes');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -17,6 +18,7 @@ function createApp() {
   app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/tasks', taskRoutes);
 
   app.use(notFound);
   app.use(errorHandler);
