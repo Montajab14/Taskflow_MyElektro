@@ -1,5 +1,5 @@
 const Task = require('../src/models/Task');
-const { todayIn } = require('../src/services/stats.service');
+const { todayIn } = require('../src/utils/date');
 const { setupDatabase, clearDatabase, teardownDatabase, api, createUser } = require('./helpers');
 
 beforeAll(setupDatabase);

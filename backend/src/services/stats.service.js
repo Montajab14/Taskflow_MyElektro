@@ -1,24 +1,8 @@
 const mongoose = require('mongoose');
 const Task = require('../models/Task');
-const { today } = require('../utils/date');
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** "YYYY-MM-DD" -> Date à minuit UTC */
-const parseDay = (s) => new Date(`${s}T00:00:00Z`);
-const formatDay = (d) => d.toISOString().slice(0, 10);
-const addDays = (s, n) => formatDay(new Date(parseDay(s).getTime() + n * DAY_MS));
-
-/** Date du jour dans le fuseau demandé, au format YYYY-MM-DD. */
-function todayIn(timezone) {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
-}
-
-/** Lundi de la semaine contenant le jour s. */
-function mondayOf(s) {
-  const dow = (parseDay(s).getUTCDay() + 6) % 7; // lundi = 0
-  return addDays(s, -dow);
-}
+const {
+  today, todayIn, parseDay, addDays, mondayOf,
+} = require('../utils/date');
 
 const ownerMatch = (ownerId) => ({ owner: new mongoose.Types.ObjectId(ownerId) });
 
@@ -155,4 +139,4 @@ async function weekly(ownerId, { weeks, timezone }) {
   return { timezone, weeks: series };
 }
 
-module.exports = { summary, heatmap, weekly, todayIn };
+module.exports = { summary, heatmap, weekly };
