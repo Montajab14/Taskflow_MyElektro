@@ -24,6 +24,7 @@ describe('POST /api/tasks', () => {
       title: 'Faire les courses',
       description: '',
       status: 'todo',
+      priority: 'medium',
       dueDate: null,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
@@ -36,6 +37,7 @@ describe('POST /api/tasks', () => {
       status: 'doing',
       description: 'Diapos + démo',
       dueDate: '2026-12-15',
+      priority: 'high',
     });
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -43,6 +45,7 @@ describe('POST /api/tasks', () => {
       status: 'doing',
       description: 'Diapos + démo',
       dueDate: '2026-12-15',
+      priority: 'high',
     });
   });
 
@@ -75,6 +78,7 @@ describe('POST /api/tasks', () => {
     ['dueDate inexistante (30 février)', { title: 'x', status: 'todo', dueDate: '2026-02-30' }, 'dueDate'],
     ['dueDate inexistante (29 février non bissextile)', { title: 'x', status: 'todo', dueDate: '2027-02-29' }, 'dueDate'],
     ['dueDate mois 13', { title: 'x', status: 'todo', dueDate: '2026-13-01' }, 'dueDate'],
+    ['priorité inconnue', { title: 'x', status: 'todo', priority: 'urgent' }, 'priority'],
   ])('400 : %s', async (_label, body, field) => {
     const res = await createTask(body);
     expect(res.status).toBe(400);
@@ -141,7 +145,7 @@ describe('GET /api/tasks et /api/tasks/:id', () => {
 describe('PUT /api/tasks/:id', () => {
   test('200 : remplace la tâche ; les champs facultatifs absents sont remis à zéro', async () => {
     const created = await createTask({
-      title: 'Avant', status: 'todo', description: 'desc', dueDate: '2026-12-01',
+      title: 'Avant', status: 'todo', description: 'desc', dueDate: '2026-12-01', priority: 'high',
     });
     const res = await api()
       .put(`/api/tasks/${created.body.id}`)
@@ -149,7 +153,7 @@ describe('PUT /api/tasks/:id', () => {
       .send({ title: 'Après', status: 'doing' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      id: created.body.id, title: 'Après', status: 'doing', description: '', dueDate: null,
+      id: created.body.id, title: 'Après', status: 'doing', description: '', dueDate: null, priority: 'medium',
     });
   });
 

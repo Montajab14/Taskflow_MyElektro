@@ -1,5 +1,5 @@
 const AppError = require('../utils/AppError');
-const { STATUSES } = require('../models/Task');
+const { STATUSES, PRIORITIES } = require('../models/Task');
 const { isValidDateString } = require('../utils/date');
 
 function checkTitle(value, errors) {
@@ -37,11 +37,19 @@ function checkDueDate(value, errors) {
   return value;
 }
 
+function checkPriority(value, errors) {
+  if (!PRIORITIES.includes(value)) {
+    errors.push({ field: 'priority', message: `La priorité doit valoir ${PRIORITIES.join(', ')}` });
+  }
+  return value;
+}
+
 const CHECKS = {
   title: checkTitle,
   status: checkStatus,
   description: checkDescription,
   dueDate: checkDueDate,
+  priority: checkPriority,
 };
 
 /**

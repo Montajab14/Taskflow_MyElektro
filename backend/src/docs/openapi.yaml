@@ -76,6 +76,11 @@ components:
           nullable: true
           description: Date réelle au format YYYY-MM-DD, ou null
           example: '2026-12-15'
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+          description: Bonus B1
     TaskPatch:
       type: object
       minProperties: 1
@@ -85,6 +90,7 @@ components:
         status: { type: string, enum: [todo, doing, done] }
         description: { type: string }
         dueDate: { type: string, format: date, nullable: true }
+        priority: { type: string, enum: [low, medium, high] }
     Task:
       type: object
       properties:
@@ -92,6 +98,7 @@ components:
         title: { type: string, example: Réviser la soutenance }
         description: { type: string, example: '' }
         status: { type: string, enum: [todo, doing, done] }
+        priority: { type: string, enum: [low, medium, high] }
         dueDate: { type: string, format: date, nullable: true, example: '2026-12-15' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }

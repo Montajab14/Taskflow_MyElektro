@@ -35,7 +35,7 @@ async function update(ownerId, taskId, data, { replace }) {
   const task = await getById(ownerId, taskId);
 
   const next = replace
-    ? { description: '', dueDate: null, ...data }
+    ? { description: '', dueDate: null, priority: 'medium', ...data }
     : data;
 
   task.set(next);
