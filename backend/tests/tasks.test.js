@@ -26,6 +26,7 @@ describe('POST /api/tasks', () => {
       status: 'todo',
       priority: 'medium',
       dueDate: null,
+      completedAt: null,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
     });
@@ -63,6 +64,11 @@ describe('POST /api/tasks', () => {
     }
   });
 
+  test('passer une tâche à done renseigne completedAt', async () => {
+    const res = await createTask({ title: 'Déjà faite', status: 'done' });
+    expect(res.body.completedAt).not.toBeNull();
+  });
+
   test.each([
     ['titre absent', { status: 'todo' }, 'title'],
     ['titre vide', { title: '', status: 'todo' }, 'title'],
@@ -97,13 +103,14 @@ describe('POST /api/tasks', () => {
     expect(res.status).toBe(400);
   });
 
-  test('les champs non prévus (owner, id) sont ignorés', async () => {
+  test('les champs non prévus (owner, id, completedAt) sont ignorés', async () => {
     const otherId = new mongoose.Types.ObjectId().toString();
     const res = await createTask({
-      title: 'x', status: 'todo', owner: otherId, id: otherId,
+      title: 'x', status: 'todo', owner: otherId, id: otherId, completedAt: '2020-01-01',
     });
     expect(res.status).toBe(201);
     expect(res.body.id).not.toBe(otherId);
+    expect(res.body.completedAt).toBeNull();
     const list = await api().get('/api/tasks').set('Authorization', auth);
     expect(list.body).toHaveLength(1);
   });
@@ -185,6 +192,20 @@ describe('PATCH /api/tasks/:id', () => {
       .send({ status: 'doing' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ title: 'Garder', status: 'doing', description: 'garder aussi' });
+  });
+
+  test('completedAt suit les changements de statut', async () => {
+    const { body: task } = await createTask({ title: 'x', status: 'todo' });
+    const url = `/api/tasks/${task.id}`;
+
+    const done = await api().patch(url).set('Authorization', auth).send({ status: 'done' });
+    expect(done.body.completedAt).not.toBeNull();
+
+    const stillDone = await api().patch(url).set('Authorization', auth).send({ title: 'renommée' });
+    expect(stillDone.body.completedAt).toBe(done.body.completedAt);
+
+    const reopened = await api().patch(url).set('Authorization', auth).send({ status: 'todo' });
+    expect(reopened.body.completedAt).toBeNull();
   });
 
   test('200 : dueDate peut être remise à null', async () => {

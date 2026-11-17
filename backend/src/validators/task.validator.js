@@ -58,8 +58,8 @@ const CHECKS = {
  * Valide le corps d'une tâche et renvoie uniquement les champs autorisés.
  * - partial = false (POST, PUT) : title et status sont obligatoires.
  * - partial = true (PATCH) : seuls les champs présents sont validés.
- * Les champs inconnus (owner, _id...) sont ignorés : le client ne peut pas
- * réattribuer une tâche à un autre compte.
+ * Les champs inconnus (owner, _id, completedAt...) sont ignorés : le client
+ * ne peut pas réattribuer une tâche à un autre compte.
  */
 function validateTask(body, { partial = false } = {}) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {

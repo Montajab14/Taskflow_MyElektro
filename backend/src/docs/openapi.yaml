@@ -102,6 +102,11 @@ components:
         status: { type: string, enum: [todo, doing, done] }
         priority: { type: string, enum: [low, medium, high] }
         dueDate: { type: string, format: date, nullable: true, example: '2026-12-15' }
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Renseigné automatiquement quand la tâche passe à done
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     Error:
