@@ -65,8 +65,8 @@ Toutes les routes, sauf celles d'inscription, de connexion, de santé et de docu
 
 | Méthode | Route | Succès | Erreurs |
 | --- | --- | --- | --- |
-| POST | `/api/auth/register` | 201 `{ token, user }` | 400, 409 |
-| POST | `/api/auth/login` | 200 `{ token, user }` | 400, 401 |
+| POST | `/api/auth/register` | 201 `{ token, user }` | 400, 409, 429 |
+| POST | `/api/auth/login` | 200 `{ token, user }` | 400, 401, 429 |
 | GET | `/api/auth/me` | 200 `{ user }` | 401 |
 | GET | `/api/tasks` | 200 `[Task]` | 400, 401 |
 | POST | `/api/tasks` | 201 `Task` | 400, 401 |
@@ -150,20 +150,22 @@ Parcours d'une requête : `route → middleware auth → contrôleur → validat
 ## Pourquoi les données sont privées
 
 1. **Les mots de passe ne sont jamais stockés en clair.** Seul leur hash bcrypt est enregistré, et il est exclu par défaut des lectures (`select: false`). Un e-mail inconnu et un mauvais mot de passe donnent la même réponse, dans le même temps, ce qui empêche de deviner quels comptes existent.
-2. **L'identité vient du JWT, pas du client.** Le middleware vérifie la signature et l'expiration du jeton avec `JWT_SECRET`, que seul le serveur connaît, puis place l'id du compte dans `req.user.id`. Un jeton modifié ou signé avec une autre clé est refusé (401).
-3. **Chaque requête en base est filtrée par propriétaire.** Le service ne cherche jamais une tâche, une habitude ou une réalisation par son seul `_id`, mais toujours par `{ _id, owner: req.user.id }`. La tâche d'un autre compte est donc introuvable, et l'API répond 404, exactement comme pour une tâche inexistante, sans même révéler qu'elle existe.
-4. **Le client ne choisit pas le propriétaire.** Les champs `owner`, `id` ou `completedAt` envoyés dans le corps sont ignorés par le validateur.
+2. **Les mots de passe ne peuvent pas être essayés en boucle.** Après 10 échecs d'inscription ou de connexion en 15 minutes depuis la même adresse IP, l'API répond 429 avec un en-tête `Retry-After`. Les connexions réussies ne comptent pas, donc un utilisateur normal n'est jamais bloqué. Réglable avec `AUTH_RATE_LIMIT_MAX` et `AUTH_RATE_LIMIT_WINDOW_MIN`.
+3. **L'identité vient du JWT, pas du client.** Le middleware vérifie la signature et l'expiration du jeton avec `JWT_SECRET`, que seul le serveur connaît, puis place l'id du compte dans `req.user.id`. Un jeton modifié ou signé avec une autre clé est refusé (401).
+4. **Chaque requête en base est filtrée par propriétaire.** Le service ne cherche jamais une tâche, une habitude ou une réalisation par son seul `_id`, mais toujours par `{ _id, owner: req.user.id }`. La tâche d'un autre compte est donc introuvable, et l'API répond 404, exactement comme pour une tâche inexistante, sans même révéler qu'elle existe.
+5. **Le client ne choisit pas le propriétaire.** Les champs `owner`, `id` ou `completedAt` envoyés dans le corps sont ignorés par le validateur.
 
 Ces garanties sont vérifiées par `tests/isolation.test.js` : deux comptes, et des tentatives de lecture, de modification et de suppression croisées par requête HTTP directe.
 
 ## Tests
 
-`npm test` lance 157 tests répartis en 9 fichiers :
+`npm test` lance 162 tests répartis en 10 fichiers :
 
 - `app.test.js` : route de santé, 404, JSON mal formé, documentation Swagger
 - `auth.test.js` : inscription, connexion, hash bcrypt, jetons absents, falsifiés ou expirés
 - `tasks.test.js` : CRUD, cas limites, toutes les règles de validation, filtres, persistance après reconnexion
 - `isolation.test.js` : accès croisés entre deux comptes
+- `rateLimit.test.js` : blocage après trop d'échecs de connexion, sans gêner les connexions réussies
 - `stats.test.js` : compteurs, heatmap (y compris le changement de jour selon le fuseau), statistiques hebdomadaires
 - `habits.test.js` : CRUD des habitudes, validation, isolation entre comptes
 - `habits.completions.test.js` : jours cochés et décochés, idempotence, requêtes simultanées, jours futurs, fuseau horaire, isolation
