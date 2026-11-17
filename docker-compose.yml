@@ -56,6 +56,27 @@ services:
     networks:
       - taskflow-network
 
+  # -----------------------------------------------------------
+  # 4. API REST TaskFlow (Express + MongoDB, dossier backend/)
+  # -----------------------------------------------------------
+  api:
+    build: ./backend
+    container_name: taskflow-api
+    restart: always
+    ports:
+      # 3002 sur la machine : 3001 est déjà pris par le service "backend"
+      - "3002:3001"
+    environment:
+      - PORT=3001
+      - MONGO_URI=mongodb://admin:secret123@mongodb:27017/taskflow?authSource=admin
+      # Lu depuis le fichier .env à la racine (jamais versionné) : sans lui, seule l'API refuse de démarrer
+      - JWT_SECRET=${JWT_SECRET:-}
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:5173
+    depends_on:
+      - mongodb
+    networks:
+      - taskflow-network
+
 # -----------------------------------------------------------
 # Volumes persistants & Réseau partagé
 # -----------------------------------------------------------
