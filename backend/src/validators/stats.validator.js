@@ -1,10 +1,8 @@
 const AppError = require('../utils/AppError');
-const { isValidDateString } = require('../utils/date');
+const { isValidDateString, isValidTimezone } = require('../utils/date');
 
 function checkTimezone(tz, errors) {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: tz });
-  } catch {
+  if (!isValidTimezone(tz)) {
     errors.push({ field: 'tz', message: 'Fuseau horaire inconnu (ex. : Europe/Paris)' });
   }
 }

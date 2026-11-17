@@ -18,4 +18,45 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-module.exports = { isValidDateString, today };
+/** Date du jour dans le fuseau IANA demandé (ex. Europe/Paris), au format YYYY-MM-DD. */
+function todayIn(timezone) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
+}
+
+/** Vrai si timezone est un fuseau IANA connu. */
+function isValidTimezone(timezone) {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** "YYYY-MM-DD" -> Date à minuit UTC. */
+const parseDay = (s) => new Date(`${s}T00:00:00Z`);
+
+/** Date -> "YYYY-MM-DD" (UTC). */
+const formatDay = (d) => d.toISOString().slice(0, 10);
+
+/** Ajoute n jours (négatif pour reculer) à un jour "YYYY-MM-DD". */
+const addDays = (s, n) => formatDay(new Date(parseDay(s).getTime() + n * DAY_MS));
+
+/** Lundi de la semaine contenant le jour s. */
+function mondayOf(s) {
+  const dow = (parseDay(s).getUTCDay() + 6) % 7; // lundi = 0
+  return addDays(s, -dow);
+}
+
+module.exports = {
+  isValidDateString,
+  isValidTimezone,
+  today,
+  todayIn,
+  parseDay,
+  formatDay,
+  addDays,
+  mondayOf,
+};

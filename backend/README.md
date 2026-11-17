@@ -77,6 +77,15 @@ Toutes les routes, sauf celles d'inscription, de connexion, de santé et de docu
 | GET | `/api/stats/summary` | 200 | 401 |
 | GET | `/api/stats/heatmap` | 200 | 400, 401 |
 | GET | `/api/stats/weekly` | 200 | 400, 401 |
+| GET | `/api/habits` | 200 `[Habit + stats]` | 400, 401 |
+| POST | `/api/habits` | 201 `Habit` | 400, 401 |
+| GET | `/api/habits/:id` | 200 `Habit + stats` | 400, 401, 404 |
+| PUT | `/api/habits/:id` | 200 `Habit` | 400, 401, 404 |
+| PATCH | `/api/habits/:id` | 200 `Habit` | 400, 401, 404 |
+| DELETE | `/api/habits/:id` | 204 | 401, 404 |
+| GET | `/api/habits/:id/completions` | 200 `[{ date, createdAt }]` | 400, 401, 404 |
+| PUT | `/api/habits/:id/completions/:date` | 201, ou 200 si déjà coché | 400, 401, 404 |
+| DELETE | `/api/habits/:id/completions/:date` | 204 | 400, 401, 404 |
 | GET | `/api/health` | 200 `{ status: "ok" }` | |
 
 Corps attendus : `register` reçoit `{ email, password, name? }` (mot de passe de 8 caractères au moins, nom facultatif de 2 à 60 caractères), `login` reçoit `{ email, password }`. `user` vaut `{ id, email, name, createdAt }`.
@@ -112,6 +121,7 @@ Le serveur ajoute `id`, `completedAt` (renseigné quand la tâche passe à `done
 
 - **B1, filtres** sur `GET /api/tasks` : `status=todo,doing`, `priority=high`, `dueAfter=2026-11-01`, `dueBefore=2026-11-30`, `overdue=true`, `q=texte` et `sort=dueDate` (ou `-createdAt` par défaut, `title`, `updatedAt`, avec `-` pour l'ordre décroissant).
 - **B1, compteur** : `GET /api/stats/summary` renvoie le total, le nombre par statut et par priorité, le nombre de tâches en retard et le taux de complétion.
+- **B2, habitudes** : une habitude a un nom (1 à 80 caractères) et une description facultative (0 à 500). On la coche jour par jour avec `PUT /api/habits/:id/completions/2026-11-17`, ce qui est idempotent : une seule réalisation par jour, et les jours futurs sont refusés. `DELETE` sur la même URL décoche le jour. `GET /api/habits` renvoie pour chaque habitude un objet `stats` : `total`, `currentStreak` (jours consécutifs jusqu'à aujourd'hui ou hier), `longestStreak`, `lastCompletedOn` et `doneToday`. Supprimer une habitude supprime ses réalisations.
 - **B3, heatmap** : `GET /api/stats/heatmap?from=2026-01-01&to=2026-12-31&tz=Europe/Paris` renvoie les tâches terminées par jour, jours vides inclus. Par défaut, ce sont les 365 derniers jours.
 - **B4, statistiques** : `GET /api/stats/weekly?weeks=12&tz=Europe/Paris` renvoie, pour chaque semaine du lundi au dimanche, les tâches créées, les tâches terminées et le taux de complétion.
 
@@ -141,18 +151,21 @@ Parcours d'une requête : `route → middleware auth → contrôleur → validat
 
 1. **Les mots de passe ne sont jamais stockés en clair.** Seul leur hash bcrypt est enregistré, et il est exclu par défaut des lectures (`select: false`). Un e-mail inconnu et un mauvais mot de passe donnent la même réponse, dans le même temps, ce qui empêche de deviner quels comptes existent.
 2. **L'identité vient du JWT, pas du client.** Le middleware vérifie la signature et l'expiration du jeton avec `JWT_SECRET`, que seul le serveur connaît, puis place l'id du compte dans `req.user.id`. Un jeton modifié ou signé avec une autre clé est refusé (401).
-3. **Chaque requête en base est filtrée par propriétaire.** Le service ne cherche jamais une tâche par son seul `_id`, mais toujours par `{ _id, owner: req.user.id }`. La tâche d'un autre compte est donc introuvable, et l'API répond 404, exactement comme pour une tâche inexistante, sans même révéler qu'elle existe.
+3. **Chaque requête en base est filtrée par propriétaire.** Le service ne cherche jamais une tâche, une habitude ou une réalisation par son seul `_id`, mais toujours par `{ _id, owner: req.user.id }`. La tâche d'un autre compte est donc introuvable, et l'API répond 404, exactement comme pour une tâche inexistante, sans même révéler qu'elle existe.
 4. **Le client ne choisit pas le propriétaire.** Les champs `owner`, `id` ou `completedAt` envoyés dans le corps sont ignorés par le validateur.
 
 Ces garanties sont vérifiées par `tests/isolation.test.js` : deux comptes, et des tentatives de lecture, de modification et de suppression croisées par requête HTTP directe.
 
 ## Tests
 
-`npm test` lance 117 tests répartis en 6 fichiers :
+`npm test` lance 157 tests répartis en 9 fichiers :
 
 - `app.test.js` : route de santé, 404, JSON mal formé, documentation Swagger
 - `auth.test.js` : inscription, connexion, hash bcrypt, jetons absents, falsifiés ou expirés
 - `tasks.test.js` : CRUD, cas limites, toutes les règles de validation, filtres, persistance après reconnexion
 - `isolation.test.js` : accès croisés entre deux comptes
 - `stats.test.js` : compteurs, heatmap (y compris le changement de jour selon le fuseau), statistiques hebdomadaires
-- `date.test.js` : validation des dates `YYYY-MM-DD`
+- `habits.test.js` : CRUD des habitudes, validation, isolation entre comptes
+- `habits.completions.test.js` : jours cochés et décochés, idempotence, requêtes simultanées, jours futurs, fuseau horaire, isolation
+- `habits.stats.test.js` : calcul des séries en cours et des plus longues séries
+- `date.test.js` : validation des dates `YYYY-MM-DD`, calculs sur les jours, fuseaux horaires
