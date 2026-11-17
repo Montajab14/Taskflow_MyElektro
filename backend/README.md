@@ -46,7 +46,9 @@ Avec MongoDB Atlas, collez simplement l'URI de connexion dans `MONGO_URI`.
 docker compose up -d --build
 ```
 
-L'API est alors sur http://localhost:3002, et sa documentation sur http://localhost:3002/api/docs.
+Si le port 27017 est déjà pris sur votre machine (par un autre MongoDB), lancez `MONGO_PORT=27019 docker compose up -d --build` : seul le port exposé sur la machine change, les services continuent de se parler entre eux sur le réseau Docker.
+
+Les ports sont les mêmes qu'en local : le front sur http://localhost:3000, l'API sur http://localhost:3001 et sa documentation sur http://localhost:3001/api/docs.
 
 ## Scripts
 
