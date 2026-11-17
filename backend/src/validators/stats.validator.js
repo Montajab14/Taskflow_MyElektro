@@ -1,5 +1,5 @@
 const AppError = require('../utils/AppError');
-const { isValidDateString, isValidTimezone } = require('../utils/date');
+const { isValidDateString, isValidTimezone, todayIn } = require('../utils/date');
 
 function checkTimezone(tz, errors) {
   if (!isValidTimezone(tz)) {
@@ -43,4 +43,13 @@ function validateWeeklyQuery(query) {
   return { weeks, timezone };
 }
 
-module.exports = { validateHeatmapQuery, validateWeeklyQuery };
+/** ?tz= du compteur : « aujourd'hui » pour compter les tâches en retard. */
+function validateSummaryQuery(query) {
+  const errors = [];
+  const timezone = query.tz ?? 'UTC';
+  checkTimezone(timezone, errors);
+  if (errors.length) throw AppError.badRequest('Paramètres invalides', errors);
+  return { today: todayIn(timezone) };
+}
+
+module.exports = { validateHeatmapQuery, validateWeeklyQuery, validateSummaryQuery };

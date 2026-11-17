@@ -1,6 +1,6 @@
 const AppError = require('../utils/AppError');
 const { STATUSES, PRIORITIES } = require('../models/Task');
-const { isValidDateString } = require('../utils/date');
+const { isValidDateString, isValidTimezone, todayIn } = require('../utils/date');
 
 const SORTS = ['createdAt', '-createdAt', 'dueDate', '-dueDate', 'title', '-title', 'updatedAt', '-updatedAt'];
 
@@ -114,6 +114,14 @@ function validateListQuery(query) {
   }
   if (query.q !== undefined) {
     filters.q = String(query.q).trim();
+  }
+  // « En retard » se juge par rapport à aujourd'hui dans le fuseau du client
+  // (ex. tz=Europe/Paris), UTC par défaut : même référence que l'affichage du front.
+  const timezone = query.tz ?? 'UTC';
+  if (!isValidTimezone(timezone)) {
+    errors.push({ field: 'tz', message: 'Fuseau horaire inconnu (ex. : Europe/Paris)' });
+  } else {
+    filters.today = todayIn(timezone);
   }
   filters.sort = query.sort ?? '-createdAt';
   if (!SORTS.includes(filters.sort)) {

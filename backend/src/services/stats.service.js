@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 const Task = require('../models/Task');
 const {
-  today, todayIn, parseDay, addDays, mondayOf,
+  todayIn, parseDay, addDays, mondayOf,
 } = require('../utils/date');
 
 const ownerMatch = (ownerId) => ({ owner: new mongoose.Types.ObjectId(ownerId) });
 
 /** B1 : compteurs par statut et priorité, tâches en retard, taux de complétion global. */
-async function summary(ownerId) {
+async function summary(ownerId, { today = todayIn('UTC') } = {}) {
   const [result] = await Task.aggregate([
     { $match: ownerMatch(ownerId) },
     {
@@ -15,7 +15,7 @@ async function summary(ownerId) {
         byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
         byPriority: [{ $group: { _id: '$priority', count: { $sum: 1 } } }],
         overdue: [
-          { $match: { status: { $ne: 'done' }, dueDate: { $ne: null, $lt: today() } } },
+          { $match: { status: { $ne: 'done' }, dueDate: { $ne: null, $lt: today } } },
           { $count: 'count' },
         ],
       },
