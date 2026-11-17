@@ -227,6 +227,15 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Trop de tentatives en échec depuis cette adresse IP
+          headers:
+            Retry-After:
+              description: Secondes à attendre avant de réessayer
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /api/auth/login:
     post:
       tags: [Auth]
@@ -245,6 +254,15 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401':
           description: E-mail ou mot de passe incorrect
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Trop de tentatives en échec depuis cette adresse IP
+          headers:
+            Retry-After:
+              description: Secondes à attendre avant de réessayer
+              schema: { type: integer }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
