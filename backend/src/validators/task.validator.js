@@ -2,6 +2,8 @@ const AppError = require('../utils/AppError');
 const { STATUSES, PRIORITIES } = require('../models/Task');
 const { isValidDateString } = require('../utils/date');
 
+const SORTS = ['createdAt', '-createdAt', 'dueDate', '-dueDate', 'title', '-title', 'updatedAt', '-updatedAt'];
+
 function checkTitle(value, errors) {
   if (typeof value !== 'string') {
     errors.push({ field: 'title', message: 'Le titre est obligatoire' });
@@ -83,4 +85,43 @@ function validateTask(body, { partial = false } = {}) {
   return data;
 }
 
-module.exports = { validateTask };
+/** Valide les paramètres de filtre de GET /api/tasks. */
+function validateListQuery(query) {
+  const errors = [];
+  const filters = {};
+
+  if (query.status !== undefined) {
+    filters.status = String(query.status).split(',');
+    filters.status.forEach((s) => checkStatus(s, errors));
+  }
+  if (query.priority !== undefined) {
+    filters.priority = String(query.priority).split(',');
+    filters.priority.forEach((p) => checkPriority(p, errors));
+  }
+  for (const key of ['dueBefore', 'dueAfter']) {
+    if (query[key] !== undefined) {
+      if (!isValidDateString(query[key])) {
+        errors.push({ field: key, message: `${key} doit être une date au format YYYY-MM-DD` });
+      }
+      filters[key] = query[key];
+    }
+  }
+  if (query.overdue !== undefined) {
+    if (!['true', 'false'].includes(query.overdue)) {
+      errors.push({ field: 'overdue', message: 'overdue doit valoir true ou false' });
+    }
+    filters.overdue = query.overdue === 'true';
+  }
+  if (query.q !== undefined) {
+    filters.q = String(query.q).trim();
+  }
+  filters.sort = query.sort ?? '-createdAt';
+  if (!SORTS.includes(filters.sort)) {
+    errors.push({ field: 'sort', message: `sort doit valoir ${SORTS.join(', ')}` });
+  }
+
+  if (errors.length) throw AppError.badRequest('Paramètres de filtre invalides', errors);
+  return filters;
+}
+
+module.exports = { validateTask, validateListQuery };

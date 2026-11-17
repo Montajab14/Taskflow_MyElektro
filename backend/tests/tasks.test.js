@@ -226,6 +226,60 @@ describe('DELETE /api/tasks/:id', () => {
   });
 });
 
+describe('Filtres (bonus B1)', () => {
+  beforeEach(async () => {
+    await createTask({ title: 'A', status: 'todo', priority: 'high', dueDate: '2020-01-10' });
+    await createTask({ title: 'B', status: 'doing', priority: 'low', dueDate: '2099-06-01' });
+    await createTask({ title: 'C', status: 'done', priority: 'high', dueDate: '2020-01-05' });
+    await createTask({ title: 'D', status: 'todo', priority: 'medium' });
+  });
+
+  const titles = async (query) => {
+    const res = await api().get('/api/tasks').query(query).set('Authorization', auth);
+    expect(res.status).toBe(200);
+    return res.body.map((t) => t.title).sort();
+  };
+
+  test('par statut', async () => {
+    expect(await titles({ status: 'todo' })).toEqual(['A', 'D']);
+    expect(await titles({ status: 'todo,done' })).toEqual(['A', 'C', 'D']);
+  });
+
+  test('par priorité', async () => {
+    expect(await titles({ priority: 'high' })).toEqual(['A', 'C']);
+  });
+
+  test('par échéance', async () => {
+    expect(await titles({ dueBefore: '2020-12-31' })).toEqual(['A', 'C']);
+    expect(await titles({ dueAfter: '2021-01-01' })).toEqual(['B']);
+    expect(await titles({ dueAfter: '2020-01-06', dueBefore: '2020-01-31' })).toEqual(['A']);
+  });
+
+  test('en retard : échéance passée et non terminée', async () => {
+    expect(await titles({ overdue: 'true' })).toEqual(['A']);
+  });
+
+  test('recherche dans le titre', async () => {
+    expect(await titles({ q: 'b' })).toEqual(['B']);
+  });
+
+  test('tri par échéance', async () => {
+    const res = await api().get('/api/tasks?sort=dueDate&status=todo,doing').set('Authorization', auth);
+    expect(res.body.map((t) => t.title)).toEqual(['D', 'A', 'B']); // null en premier
+  });
+
+  test.each([
+    [{ status: 'nope' }],
+    [{ priority: 'urgent' }],
+    [{ dueBefore: '2020-02-30' }],
+    [{ overdue: 'oui' }],
+    [{ sort: 'owner' }],
+  ])('400 : filtre invalide %p', async (query) => {
+    const res = await api().get('/api/tasks').query(query).set('Authorization', auth);
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('Persistance', () => {
   test('les tâches survivent à une reconnexion à la base', async () => {
     await createTask({ title: 'Persistante', status: 'todo' });
