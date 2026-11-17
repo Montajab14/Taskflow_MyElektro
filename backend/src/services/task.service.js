@@ -18,6 +18,12 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** Met à jour completedAt selon la transition de statut. */
+function applyCompletion(task, newStatus) {
+  if (newStatus === 'done' && task.status !== 'done') task.completedAt = new Date();
+  if (newStatus !== 'done') task.completedAt = null;
+}
+
 async function list(ownerId, filters = {}) {
   const query = { owner: ownerId };
 
@@ -42,7 +48,9 @@ async function list(ownerId, filters = {}) {
 }
 
 async function create(ownerId, data) {
-  return Task.create({ ...data, owner: ownerId });
+  const task = new Task({ ...data, owner: ownerId });
+  if (task.status === 'done') task.completedAt = new Date();
+  return task.save();
 }
 
 async function getById(ownerId, taskId) {
@@ -62,6 +70,7 @@ async function update(ownerId, taskId, data, { replace }) {
     ? { description: '', dueDate: null, priority: 'medium', ...data }
     : data;
 
+  if (next.status !== undefined) applyCompletion(task, next.status);
   task.set(next);
   return task.save();
 }

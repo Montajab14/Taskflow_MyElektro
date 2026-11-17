@@ -18,11 +18,15 @@ const taskSchema = new mongoose.Schema(
     // Stockée telle quelle au format "YYYY-MM-DD" : pas de fuseau horaire qui
     // décale la date d'un jour, et l'ordre alphabétique est l'ordre chronologique.
     dueDate: { type: String, default: null },
+    // Renseignée quand la tâche passe à "done", remise à null sinon.
+    // Sert à la heatmap et aux statistiques.
+    completedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
 
 taskSchema.index({ owner: 1, status: 1 });
+taskSchema.index({ owner: 1, completedAt: 1 });
 
 taskSchema.set('toJSON', {
   transform(doc, ret) {
@@ -33,6 +37,7 @@ taskSchema.set('toJSON', {
       status: ret.status,
       priority: ret.priority,
       dueDate: ret.dueDate,
+      completedAt: ret.completedAt,
       createdAt: ret.createdAt,
       updatedAt: ret.updatedAt,
     };

@@ -1,4 +1,5 @@
 const Task = require('../src/models/Task');
+const { todayIn } = require('../src/services/stats.service');
 const { setupDatabase, clearDatabase, teardownDatabase, api, createUser } = require('./helpers');
 
 beforeAll(setupDatabase);
@@ -36,5 +37,92 @@ describe('GET /api/stats/summary', () => {
   test('compte vide', async () => {
     const res = await get('/api/stats/summary');
     expect(res.body).toMatchObject({ total: 0, completionRate: 0, overdue: 0 });
+  });
+});
+
+describe('GET /api/stats/heatmap', () => {
+  test('compte les tâches terminées par jour, jours vides inclus', async () => {
+    await insert({ status: 'done', completedAt: new Date('2026-03-02T10:00:00Z') });
+    await insert({ status: 'done', completedAt: new Date('2026-03-02T18:00:00Z') });
+    await insert({ status: 'done', completedAt: new Date('2026-03-04T09:00:00Z') });
+    await insert({ status: 'done', completedAt: new Date('2026-04-01T09:00:00Z') }); // hors période
+
+    const res = await get('/api/stats/heatmap?from=2026-03-01&to=2026-03-05');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      from: '2026-03-01',
+      to: '2026-03-05',
+      timezone: 'UTC',
+      total: 3,
+      max: 2,
+      days: [
+        { date: '2026-03-01', count: 0 },
+        { date: '2026-03-02', count: 2 },
+        { date: '2026-03-03', count: 0 },
+        { date: '2026-03-04', count: 1 },
+        { date: '2026-03-05', count: 0 },
+      ],
+    });
+  });
+
+  test('le fuseau horaire décale le jour', async () => {
+    // 23h30 UTC le 2 mars = 00h30 le 3 mars à Paris
+    await insert({ status: 'done', completedAt: new Date('2026-03-02T23:30:00Z') });
+
+    const utc = await get('/api/stats/heatmap?from=2026-03-02&to=2026-03-03');
+    const paris = await get('/api/stats/heatmap?from=2026-03-02&to=2026-03-03&tz=Europe/Paris');
+    expect(utc.body.days.map((d) => d.count)).toEqual([1, 0]);
+    expect(paris.body.days.map((d) => d.count)).toEqual([0, 1]);
+  });
+
+  test('par défaut : les 365 derniers jours', async () => {
+    const res = await get('/api/stats/heatmap');
+    expect(res.status).toBe(200);
+    expect(res.body.days).toHaveLength(365);
+    expect(res.body.to).toBe(todayIn('UTC'));
+  });
+
+  test.each([
+    ['from=2026-02-30'],
+    ['from=2026-03-05&to=2026-03-01'],
+    ['from=2020-01-01&to=2026-01-01'],
+    ['tz=Mars/Olympus'],
+  ])('400 : %s', async (query) => {
+    const res = await get(`/api/stats/heatmap?${query}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /api/stats/weekly', () => {
+  test('une entrée par semaine, du lundi au dimanche, la plus récente en dernier', async () => {
+    const res = await get('/api/stats/weekly?weeks=4');
+    expect(res.status).toBe(200);
+    expect(res.body.weeks).toHaveLength(4);
+
+    for (const w of res.body.weeks) {
+      expect(new Date(`${w.weekStart}T00:00:00Z`).getUTCDay()).toBe(1); // lundi
+      expect(new Date(`${w.weekEnd}T00:00:00Z`).getUTCDay()).toBe(0); // dimanche
+    }
+    const last = res.body.weeks.at(-1);
+    const today = todayIn('UTC');
+    expect(last.weekStart <= today && today <= last.weekEnd).toBe(true);
+  });
+
+  test('création, complétion et taux de la semaine en cours', async () => {
+    const now = new Date();
+    await insert({ status: 'done', completedAt: now });
+    await insert({ status: 'done', completedAt: now });
+    await insert({ status: 'todo' });
+    await insert({ status: 'doing' });
+
+    const res = await get('/api/stats/weekly?weeks=2');
+    const [previous, current] = res.body.weeks;
+    expect(previous).toMatchObject({ created: 0, completed: 0, completionRate: null });
+    expect(current).toMatchObject({ created: 4, completed: 2, completionRate: 0.5 });
+  });
+
+  test.each([['weeks=0'], ['weeks=200'], ['weeks=abc'], ['tz=Nowhere']])('400 : %s', async (query) => {
+    const res = await get(`/api/stats/weekly?${query}`);
+    expect(res.status).toBe(400);
   });
 });

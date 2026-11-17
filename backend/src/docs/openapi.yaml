@@ -102,6 +102,11 @@ components:
         status: { type: string, enum: [todo, doing, done] }
         priority: { type: string, enum: [low, medium, high] }
         dueDate: { type: string, format: date, nullable: true, example: '2026-12-15' }
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Renseigné automatiquement quand la tâche passe à done
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     Error:
@@ -121,6 +126,11 @@ components:
       in: path
       required: true
       schema: { type: string }
+    Timezone:
+      name: tz
+      in: query
+      description: Fuseau IANA utilisé pour découper les jours (défaut UTC)
+      schema: { type: string, example: Europe/Paris }
   responses:
     BadRequest:
       description: Données invalides
@@ -350,4 +360,75 @@ paths:
                       high: { type: integer }
                   overdue: { type: integer, example: 2 }
                   completionRate: { type: number, example: 0.333 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/stats/heatmap:
+    get:
+      tags: [Stats]
+      summary: Tâches terminées par jour (B3)
+      description: Renvoie chaque jour de la période, y compris ceux à 0. Par défaut, les 365 derniers jours.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Série journalière
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+                  timezone: { type: string }
+                  total: { type: integer }
+                  max: { type: integer }
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        count: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/stats/weekly:
+    get:
+      tags: [Stats]
+      summary: Taux de complétion par semaine (B4)
+      description: |
+        Une entrée par semaine (lundi à dimanche), de la plus ancienne à la plus récente.
+        `completionRate` est la part des tâches créées cette semaine-là qui sont terminées,
+        ou null si aucune tâche n'a été créée.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: weeks
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 104, default: 12 }
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Série hebdomadaire
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timezone: { type: string }
+                  weeks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        weekStart: { type: string, format: date }
+                        weekEnd: { type: string, format: date }
+                        created: { type: integer }
+                        completed: { type: integer }
+                        completionRate: { type: number, nullable: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
