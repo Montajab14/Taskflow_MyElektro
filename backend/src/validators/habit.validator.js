@@ -1,4 +1,5 @@
 const AppError = require('../utils/AppError');
+const { isValidDateString, isValidTimezone, todayIn } = require('../utils/date');
 
 function checkName(value, errors) {
   if (typeof value !== 'string') {
@@ -48,4 +49,44 @@ function validateHabit(body, { partial = false } = {}) {
   return data;
 }
 
-module.exports = { validateHabit };
+function checkTimezone(tz, errors) {
+  if (!isValidTimezone(tz)) {
+    errors.push({ field: 'tz', message: 'Fuseau horaire inconnu (ex. : Europe/Paris)' });
+  }
+}
+
+/**
+ * Jour d'une réalisation (paramètre :date). Refuse les jours futurs : on ne
+ * coche pas une habitude à l'avance. « Aujourd'hui » dépend du fuseau tz.
+ */
+function validateCompletionDate(date, query = {}) {
+  const errors = [];
+  const timezone = query.tz ?? 'UTC';
+  checkTimezone(timezone, errors);
+
+  if (!isValidDateString(date)) {
+    errors.push({ field: 'date', message: 'La date doit être une date réelle au format YYYY-MM-DD' });
+  } else if (!errors.length && date > todayIn(timezone)) {
+    errors.push({ field: 'date', message: 'Impossible de valider une habitude pour un jour futur' });
+  }
+
+  if (errors.length) throw AppError.badRequest('Paramètres invalides', errors);
+  return date;
+}
+
+/** Période facultative ?from=&to= pour lister les réalisations. */
+function validateCompletionRange(query) {
+  const errors = [];
+  for (const key of ['from', 'to']) {
+    if (query[key] !== undefined && !isValidDateString(query[key])) {
+      errors.push({ field: key, message: `${key} doit être une date au format YYYY-MM-DD` });
+    }
+  }
+  if (!errors.length && query.from && query.to && query.from > query.to) {
+    errors.push({ field: 'from', message: 'from doit précéder to' });
+  }
+  if (errors.length) throw AppError.badRequest('Paramètres invalides', errors);
+  return { from: query.from, to: query.to };
+}
+
+module.exports = { validateHabit, validateCompletionDate, validateCompletionRange };

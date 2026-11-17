@@ -42,4 +42,45 @@ async function remove(ownerId, habitId) {
   await HabitCompletion.deleteMany({ owner: ownerId, habit: habitId });
 }
 
-module.exports = { list, create, getById, update, remove };
+/** Réalisations d'une habitude, de la plus ancienne à la plus récente. */
+async function listCompletions(ownerId, habitId, { from, to }) {
+  await getById(ownerId, habitId);
+  const query = { owner: ownerId, habit: habitId };
+  if (from || to) {
+    query.date = {};
+    if (from) query.date.$gte = from;
+    if (to) query.date.$lte = to;
+  }
+  return HabitCompletion.find(query).sort({ date: 1 });
+}
+
+/**
+ * Marque l'habitude comme faite ce jour-là. Idempotent : renvoie
+ * { completion, created } où created = false si le jour était déjà coché.
+ */
+async function addCompletion(ownerId, habitId, date) {
+  await getById(ownerId, habitId);
+  const filter = { owner: ownerId, habit: habitId, date };
+  try {
+    const result = await HabitCompletion.findOneAndUpdate(
+      filter,
+      { $setOnInsert: filter },
+      { upsert: true, new: true, includeResultMetadata: true },
+    );
+    return { completion: result.value, created: !result.lastErrorObject.updatedExisting };
+  } catch (err) {
+    // Deux requêtes simultanées pour le même jour : l'index unique tranche.
+    if (err.code !== 11000) throw err;
+    return { completion: await HabitCompletion.findOne(filter), created: false };
+  }
+}
+
+async function removeCompletion(ownerId, habitId, date) {
+  await getById(ownerId, habitId);
+  const result = await HabitCompletion.deleteOne({ owner: ownerId, habit: habitId, date });
+  if (result.deletedCount === 0) throw AppError.notFound('Aucune réalisation ce jour-là');
+}
+
+module.exports = {
+  list, create, getById, update, remove, listCompletions, addCompletion, removeCompletion,
+};

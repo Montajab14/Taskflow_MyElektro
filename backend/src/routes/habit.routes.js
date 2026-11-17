@@ -13,4 +13,9 @@ router.put('/:id', controller.replace);
 router.patch('/:id', controller.patch);
 router.delete('/:id', controller.remove);
 
+// Réalisations datées : PUT coche un jour, DELETE le décoche.
+router.get('/:id/completions', controller.listCompletions);
+router.put('/:id/completions/:date', controller.addCompletion);
+router.delete('/:id/completions/:date', controller.removeCompletion);
+
 module.exports = router;
