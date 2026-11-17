@@ -11,4 +11,8 @@ async function login(req, res) {
   res.status(200).json({ token, user });
 }
 
-module.exports = { register, login };
+async function me(req, res) {
+  res.status(200).json({ user: req.user });
+}
+
+module.exports = { register, login, me };
