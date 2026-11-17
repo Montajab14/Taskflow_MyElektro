@@ -23,3 +23,18 @@ test('JSON mal formé : 400', async () => {
   expect(res.status).toBe(400);
   expect(res.body.error).toMatch(/JSON/);
 });
+
+test('GET /api/docs.json expose la spécification OpenAPI', async () => {
+  const res = await request(app).get('/api/docs.json');
+  expect(res.status).toBe(200);
+  expect(res.body.openapi).toMatch(/^3\./);
+  expect(Object.keys(res.body.paths)).toEqual(
+    expect.arrayContaining(['/api/auth/register', '/api/auth/login', '/api/tasks', '/api/tasks/{id}']),
+  );
+});
+
+test('GET /api/docs/ sert Swagger UI', async () => {
+  const res = await request(app).get('/api/docs/');
+  expect(res.status).toBe(200);
+  expect(res.text).toMatch(/swagger/i);
+});
