@@ -8,6 +8,7 @@ const openapi = require('./docs/openapi');
 const authRoutes = require('./routes/auth.routes');
 const taskRoutes = require('./routes/task.routes');
 const statsRoutes = require('./routes/stats.routes');
+const habitRoutes = require('./routes/habit.routes');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -26,6 +27,7 @@ function createApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api/tasks', taskRoutes);
   app.use('/api/stats', statsRoutes);
+  app.use('/api/habits', habitRoutes);
 
   app.use(notFound);
   app.use(errorHandler);
