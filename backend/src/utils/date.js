@@ -10,14 +10,6 @@ function isValidDateString(s) {
   return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
 }
 
-/**
- * Date du jour au format YYYY-MM-DD, en UTC : même référence pour le filtre
- * « en retard » et pour les statistiques, quel que soit le fuseau du serveur.
- */
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /** Date du jour dans le fuseau IANA demandé (ex. Europe/Paris), au format YYYY-MM-DD. */
 function todayIn(timezone) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
@@ -53,7 +45,6 @@ function mondayOf(s) {
 module.exports = {
   isValidDateString,
   isValidTimezone,
-  today,
   todayIn,
   parseDay,
   formatDay,

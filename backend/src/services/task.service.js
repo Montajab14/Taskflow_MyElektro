@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Task = require('../models/Task');
 const AppError = require('../utils/AppError');
-const { today } = require('../utils/date');
+const { todayIn } = require('../utils/date');
 
 /*
  * Toutes les requêtes filtrent sur { owner: ownerId }. Une tâche d'un autre
@@ -35,7 +35,7 @@ async function list(ownerId, filters = {}) {
     if (filters.dueBefore) query.dueDate.$lte = filters.dueBefore;
   }
   if (filters.overdue === true) {
-    query.dueDate = { ...query.dueDate, $lt: today() };
+    query.dueDate = { ...query.dueDate, $lt: filters.today ?? todayIn('UTC') };
     query.status = { $in: (filters.status || ['todo', 'doing']).filter((s) => s !== 'done') };
   }
   if (filters.q) query.title = { $regex: escapeRegex(filters.q), $options: 'i' };

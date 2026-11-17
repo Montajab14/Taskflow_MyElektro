@@ -76,7 +76,7 @@ Toutes les routes, sauf celles d'inscription, de connexion, de santé et de docu
 | PUT | `/api/tasks/:id` | 200 `Task` | 400, 401, 404 |
 | PATCH | `/api/tasks/:id` | 200 `Task` | 400, 401, 404 |
 | DELETE | `/api/tasks/:id` | 204 | 401, 404 |
-| GET | `/api/stats/summary` | 200 | 401 |
+| GET | `/api/stats/summary` | 200 | 400, 401 |
 | GET | `/api/stats/heatmap` | 200 | 400, 401 |
 | GET | `/api/stats/weekly` | 200 | 400, 401 |
 | GET | `/api/habits` | 200 `[Habit + stats]` | 400, 401 |
@@ -121,8 +121,8 @@ Le serveur ajoute `id`, `completedAt` (renseigné quand la tâche passe à `done
 
 ### Bonus
 
-- **B1, filtres** sur `GET /api/tasks` : `status=todo,doing`, `priority=high`, `dueAfter=2026-11-01`, `dueBefore=2026-11-30`, `overdue=true`, `q=texte` et `sort=dueDate` (ou `-createdAt` par défaut, `title`, `updatedAt`, avec `-` pour l'ordre décroissant).
-- **B1, compteur** : `GET /api/stats/summary` renvoie le total, le nombre par statut et par priorité, le nombre de tâches en retard et le taux de complétion.
+- **B1, filtres** sur `GET /api/tasks` : `status=todo,doing`, `priority=high`, `dueAfter=2026-11-01`, `dueBefore=2026-11-30`, `overdue=true` (avec `tz=Europe/Paris` pour juger le retard dans le fuseau du client, UTC par défaut), `q=texte` et `sort=dueDate` (ou `-createdAt` par défaut, `title`, `updatedAt`, avec `-` pour l'ordre décroissant).
+- **B1, compteur** : `GET /api/stats/summary?tz=Europe/Paris` renvoie le total, le nombre par statut et par priorité, le nombre de tâches en retard et le taux de complétion.
 - **B2, habitudes** : une habitude a un nom (1 à 80 caractères) et une description facultative (0 à 500). On la coche jour par jour avec `PUT /api/habits/:id/completions/2026-11-17`, ce qui est idempotent : une seule réalisation par jour, et les jours futurs sont refusés. `DELETE` sur la même URL décoche le jour. `GET /api/habits` renvoie pour chaque habitude un objet `stats` : `total`, `currentStreak` (jours consécutifs jusqu'à aujourd'hui ou hier), `longestStreak`, `lastCompletedOn` et `doneToday`. Supprimer une habitude supprime ses réalisations.
 - **B3, heatmap** : `GET /api/stats/heatmap?from=2026-01-01&to=2026-12-31&tz=Europe/Paris` renvoie les tâches terminées par jour, jours vides inclus. Par défaut, ce sont les 365 derniers jours.
 - **B4, statistiques** : `GET /api/stats/weekly?weeks=12&tz=Europe/Paris` renvoie, pour chaque semaine du lundi au dimanche, les tâches créées, les tâches terminées et le taux de complétion.
@@ -161,13 +161,14 @@ Ces garanties sont vérifiées par `tests/isolation.test.js` : deux comptes, et 
 
 ## Tests
 
-`npm test` lance 162 tests répartis en 10 fichiers :
+`npm test` lance 166 tests répartis en 11 fichiers :
 
 - `app.test.js` : route de santé, 404, JSON mal formé, documentation Swagger
 - `auth.test.js` : inscription, connexion, hash bcrypt, jetons absents, falsifiés ou expirés
 - `tasks.test.js` : CRUD, cas limites, toutes les règles de validation, filtres, persistance après reconnexion
 - `isolation.test.js` : accès croisés entre deux comptes
 - `rateLimit.test.js` : blocage après trop d'échecs de connexion, sans gêner les connexions réussies
+- `overdue.test.js` : tâches en retard selon le fuseau horaire
 - `stats.test.js` : compteurs, heatmap (y compris le changement de jour selon le fuseau), statistiques hebdomadaires
 - `habits.test.js` : CRUD des habitudes, validation, isolation entre comptes
 - `habits.completions.test.js` : jours cochés et décochés, idempotence, requêtes simultanées, jours futurs, fuseau horaire, isolation
