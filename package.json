@@ -1,5 +1,5 @@
 {
-  "name": "taskflow",
+  "name": "myelektro",
   "version": "1.0.0",
   "description": "Application TaskFlow - Page d'authentification et gestion de tâches",
   "main": "src/index.js",

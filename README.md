@@ -1,55 +1,44 @@
-# 📋 TaskFlow — Page d'Authentification
+# MyElektro — Front
 
-Projet d'authentification moderne pour l'application **TaskFlow** (Connexion et Inscription avec mot de passe).
+Gestionnaire d'étapes de projets électroniques (sujet TaskFlow). Front en HTML/CSS/JS natif, sans dépendance.
 
----
-
-## 🏗️ Architecture du Projet
-
-```text
-Tastkflow/
-├── package.json          # Configuration npm et scripts de lancement
-├── README.md             # Guide d'utilisation du projet
-└── src/
-    ├── index.html        # Page HTML principale (Auth Login / Inscription)
-    ├── index.js          # Serveur Node.js natif (exécuté avec `npm start`)
-    ├── css/
-    │   └── style.css     # Styles CSS modernes et responsive
-    └── js/
-        └── script.js     # Logique JS (onglets, force mot de passe, validation, notifications)
-```
-
----
-
-## 🚀 Comment lancer le projet ?
-
-### Méthode 1 : Sans Node.js (Directement dans le navigateur)
-Vous pouvez simplement ouvrir le fichier `src/index.html` :
-- **Double-cliquez** sur `src/index.html` dans l'explorateur Windows, ou
-- Faites un clic droit > **Ouvrir avec** > **Google Chrome** (ou votre navigateur préféré).
-- Si vous utilisez l'extension **Live Server** dans VS Code : faites un clic droit sur `src/index.html` > **Open with Live Server**.
-
-### Méthode 2 : Avec Node.js (Serveur local)
-Une fois Node.js installé sur votre machine :
+## Lancer
 ```bash
-# Lancer le serveur local :
-npm start
-
-# Ou avec rechargement automatique en développement :
-npm run dev
+npm start        # sert src/ sur http://localhost:3000
 ```
-Puis ouvrez votre navigateur à l'adresse : **[http://localhost:3000](http://localhost:3000)**.
 
----
+## Brancher la vraie API
+Dans `src/js/config.js` :
+```js
+useMock: false,                       // true = faux backend en localStorage
+apiUrl: 'http://localhost:3001/api',
+```
+En mode mock, tout fonctionne sans serveur (utile avant que `/api/tasks` soit prêt).
 
-## ✨ Fonctionnalités incluses
+## Contrat attendu de l'API
+| Action | Requête | Réponse |
+|---|---|---|
+| Inscription | `POST /auth/register {email,password,name?}` | `201 {token,user}` |
+| Connexion | `POST /auth/login {email,password}` | `200 {token,user}` |
+| Liste | `GET /tasks` | tableau, ou `{tasks:[…]}` |
+| Détail | `GET /tasks/:id` | tâche, ou `{task:{…}}` |
+| Ajout | `POST /tasks {title,status,description,dueDate}` | `201` + tâche |
+| Édition | `PUT /tasks/:id` (corps complet) | `200` + tâche |
+| Suppression | `DELETE /tasks/:id` | `204` ou `200` |
 
-- 🔄 **Bascule d'onglets fluide** entre *Connexion* et *Inscription*.
-- 👁️ **Affichage / Masquage du mot de passe** en un clic.
-- 🔒 **Indicateur de force du mot de passe** en temps réel (couleur + jauge + libellé).
-- ✅ **Validation complète des entrées** (format email, taille de mot de passe, confirmation identique, CGU).
-- 💾 **Persistance simulée via `localStorage`** (vous pouvez créer un compte et vous connecter immédiatement).
-- 🏷️ **Compte démo intégré** :
-  - **Email** : `demo@taskflow.io`
-  - **Mot de passe** : `TaskFlow2026!`
+Toutes les routes `/tasks` : en-tête `Authorization: Bearer <jwt>`. Erreurs : `{error, details:[{field,message}]}`.
+Tâche d'un autre utilisateur : `404`. Si le backend utilise `PATCH` au lieu de `PUT`, changer `updateTask` dans `src/js/api.js`.
 
+## Statuts
+Valeurs envoyées à l'API : `todo`, `doing`, `done`. Libellés affichés : À faire / Sur le bench / Validé (`STATUS_LABELS` dans `src/js/app.js`).
+
+## Structure
+```
+src/index.html        écrans (auth + application)
+src/css/style.css     thème « carte électronique »
+src/js/config.js      apiUrl, useMock
+src/js/validate.js    règles de validation (mêmes que l'API)
+src/js/api.js         client HTTP, Bearer, erreurs, déconnexion sur 401
+src/js/mock.js        faux backend localStorage
+src/js/app.js         routeur #/… et vues (liste, détail, formulaire, suppression)
+```
