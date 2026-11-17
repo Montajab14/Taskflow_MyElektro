@@ -29,7 +29,10 @@ test('GET /api/docs.json expose la spécification OpenAPI', async () => {
   expect(res.status).toBe(200);
   expect(res.body.openapi).toMatch(/^3\./);
   expect(Object.keys(res.body.paths)).toEqual(
-    expect.arrayContaining(['/api/auth/register', '/api/auth/login', '/api/tasks', '/api/tasks/{id}']),
+    expect.arrayContaining([
+      '/api/auth/register', '/api/auth/login', '/api/tasks', '/api/tasks/{id}',
+      '/api/habits', '/api/habits/{id}', '/api/habits/{id}/completions/{date}',
+    ]),
   );
 });
 

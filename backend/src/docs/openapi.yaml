@@ -21,6 +21,8 @@ tags:
   - name: Tasks
   - name: Stats
     description: Bonus B1, B3, B4
+  - name: Habits
+    description: Bonus B2, suivi d'habitudes
 components:
   securitySchemes:
     bearerAuth:
@@ -109,6 +111,50 @@ components:
           description: Renseigné automatiquement quand la tâche passe à done
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    HabitInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: 1 à 80 caractères après suppression des espaces
+          example: Lire 20 minutes
+        description: { type: string, maxLength: 500, example: '' }
+    HabitPatch:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string }
+        description: { type: string }
+    Habit:
+      type: object
+      properties:
+        id: { type: string, example: 6650c0ffee0000000000f00d }
+        name: { type: string, example: Lire 20 minutes }
+        description: { type: string, example: '' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    HabitWithStats:
+      allOf:
+        - $ref: '#/components/schemas/Habit'
+        - type: object
+          properties:
+            stats:
+              type: object
+              properties:
+                total: { type: integer, example: 12 }
+                currentStreak:
+                  type: integer
+                  example: 3
+                  description: Jours consécutifs jusqu'à aujourd'hui, ou jusqu'à hier
+                longestStreak: { type: integer, example: 7 }
+                lastCompletedOn: { type: string, format: date, nullable: true }
+                doneToday: { type: boolean }
+    HabitCompletion:
+      type: object
+      properties:
+        date: { type: string, format: date, example: '2026-11-17' }
+        createdAt: { type: string, format: date-time }
     Error:
       type: object
       properties:
@@ -126,6 +172,17 @@ components:
       in: path
       required: true
       schema: { type: string }
+    HabitId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    CompletionDate:
+      name: date
+      in: path
+      required: true
+      description: Jour au format YYYY-MM-DD, pas dans le futur
+      schema: { type: string, format: date }
     Timezone:
       name: tz
       in: query
@@ -143,7 +200,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     NotFound:
-      description: Tâche inexistante ou appartenant à un autre compte
+      description: Ressource inexistante ou appartenant à un autre compte
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -432,3 +489,161 @@ paths:
                         completionRate: { type: number, nullable: true }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/habits:
+    get:
+      tags: [Habits]
+      summary: Lister ses habitudes, avec leurs séries
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Habitudes du compte, de la plus ancienne à la plus récente
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HabitWithStats' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Habits]
+      summary: Créer une habitude
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HabitInput' }
+      responses:
+        '201':
+          description: Habitude créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Habit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/habits/{id}:
+    parameters:
+      - $ref: '#/components/parameters/HabitId'
+    get:
+      tags: [Habits]
+      summary: Détail d'une habitude, avec ses séries
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: L'habitude
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HabitWithStats' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Habits]
+      summary: Remplacer une habitude
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HabitInput' }
+      responses:
+        '200':
+          description: Habitude modifiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Habit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Habits]
+      summary: Modifier une partie d'une habitude
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HabitPatch' }
+      responses:
+        '200':
+          description: Habitude modifiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Habit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Habits]
+      summary: Supprimer une habitude et ses réalisations
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Habitude supprimée }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/habits/{id}/completions:
+    parameters:
+      - $ref: '#/components/parameters/HabitId'
+    get:
+      tags: [Habits]
+      summary: Réalisations d'une habitude
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Réalisations triées par date
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HabitCompletion' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/habits/{id}/completions/{date}:
+    parameters:
+      - $ref: '#/components/parameters/HabitId'
+      - $ref: '#/components/parameters/CompletionDate'
+    put:
+      tags: [Habits]
+      summary: Cocher un jour
+      description: Idempotent. Les jours futurs sont refusés ; « aujourd'hui » dépend de tz.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '201':
+          description: Jour coché
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HabitCompletion' }
+        '200':
+          description: Jour déjà coché, rien n'a changé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HabitCompletion' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Habits]
+      summary: Décocher un jour
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '204': { description: Jour décoché }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
