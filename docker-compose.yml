@@ -44,7 +44,8 @@ services:
     container_name: taskflow-backend
     restart: always
     ports:
-      - "3001:3000"
+      # Même port qu'en local (npm start) : le front est sur http://localhost:3000
+      - "3000:3000"
     environment:
       - PORT=3000
       - MONGO_URI=mongodb://admin:secret123@mongodb:27017/taskflow?authSource=admin
@@ -64,14 +65,14 @@ services:
     container_name: taskflow-api
     restart: always
     ports:
-      # 3002 sur la machine : 3001 est déjà pris par le service "backend"
-      - "3002:3001"
+      # Même port qu'en local (npm run dev) : le front appelle http://localhost:3001/api
+      - "3001:3001"
     environment:
       - PORT=3001
       - MONGO_URI=mongodb://admin:secret123@mongodb:27017/taskflow?authSource=admin
       # Lu depuis le fichier .env à la racine (jamais versionné) : sans lui, seule l'API refuse de démarrer
       - JWT_SECRET=${JWT_SECRET:-}
-      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:5173
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
     depends_on:
       - mongodb
     networks:
