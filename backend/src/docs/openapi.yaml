@@ -291,6 +291,10 @@ paths:
           in: query
           description: true pour ne garder que les tâches non terminées dont l'échéance est passée
           schema: { type: string, enum: ['true', 'false'] }
+        - name: tz
+          in: query
+          description: Fuseau IANA définissant « aujourd'hui » pour overdue (défaut UTC)
+          schema: { type: string, example: Europe/Paris }
         - name: q
           in: query
           description: Recherche dans le titre (insensible à la casse)
@@ -394,6 +398,11 @@ paths:
       tags: [Stats]
       summary: Compteurs de tâches (B1)
       security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tz
+          in: query
+          description: Fuseau IANA définissant « aujourd'hui » pour compter les tâches en retard (défaut UTC)
+          schema: { type: string, example: Europe/Paris }
       responses:
         '200':
           description: Compteurs
@@ -417,6 +426,7 @@ paths:
                       high: { type: integer }
                   overdue: { type: integer, example: 2 }
                   completionRate: { type: number, example: 0.333 }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
   /api/stats/heatmap:
     get:
