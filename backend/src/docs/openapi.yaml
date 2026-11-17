@@ -19,6 +19,8 @@ servers:
 tags:
   - name: Auth
   - name: Tasks
+  - name: Stats
+    description: Bonus B1, B3, B4
 components:
   securitySchemes:
     bearerAuth:
@@ -320,3 +322,32 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /api/stats/summary:
+    get:
+      tags: [Stats]
+      summary: Compteurs de tâches (B1)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Compteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer, example: 12 }
+                  byStatus:
+                    type: object
+                    properties:
+                      todo: { type: integer, example: 5 }
+                      doing: { type: integer, example: 3 }
+                      done: { type: integer, example: 4 }
+                  byPriority:
+                    type: object
+                    properties:
+                      low: { type: integer }
+                      medium: { type: integer }
+                      high: { type: integer }
+                  overdue: { type: integer, example: 2 }
+                  completionRate: { type: number, example: 0.333 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
