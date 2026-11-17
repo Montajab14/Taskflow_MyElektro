@@ -92,3 +92,37 @@ describe('GET /api/stats/heatmap', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('GET /api/stats/weekly', () => {
+  test('une entrée par semaine, du lundi au dimanche, la plus récente en dernier', async () => {
+    const res = await get('/api/stats/weekly?weeks=4');
+    expect(res.status).toBe(200);
+    expect(res.body.weeks).toHaveLength(4);
+
+    for (const w of res.body.weeks) {
+      expect(new Date(`${w.weekStart}T00:00:00Z`).getUTCDay()).toBe(1); // lundi
+      expect(new Date(`${w.weekEnd}T00:00:00Z`).getUTCDay()).toBe(0); // dimanche
+    }
+    const last = res.body.weeks.at(-1);
+    const today = todayIn('UTC');
+    expect(last.weekStart <= today && today <= last.weekEnd).toBe(true);
+  });
+
+  test('création, complétion et taux de la semaine en cours', async () => {
+    const now = new Date();
+    await insert({ status: 'done', completedAt: now });
+    await insert({ status: 'done', completedAt: now });
+    await insert({ status: 'todo' });
+    await insert({ status: 'doing' });
+
+    const res = await get('/api/stats/weekly?weeks=2');
+    const [previous, current] = res.body.weeks;
+    expect(previous).toMatchObject({ created: 0, completed: 0, completionRate: null });
+    expect(current).toMatchObject({ created: 4, completed: 2, completionRate: 0.5 });
+  });
+
+  test.each([['weeks=0'], ['weeks=200'], ['weeks=abc'], ['tz=Nowhere']])('400 : %s', async (query) => {
+    const res = await get(`/api/stats/weekly?${query}`);
+    expect(res.status).toBe(400);
+  });
+});

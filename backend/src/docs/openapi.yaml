@@ -397,3 +397,38 @@ paths:
                         count: { type: integer }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/stats/weekly:
+    get:
+      tags: [Stats]
+      summary: Taux de complétion par semaine (B4)
+      description: |
+        Une entrée par semaine (lundi à dimanche), de la plus ancienne à la plus récente.
+        `completionRate` est la part des tâches créées cette semaine-là qui sont terminées,
+        ou null si aucune tâche n'a été créée.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: weeks
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 104, default: 12 }
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Série hebdomadaire
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timezone: { type: string }
+                  weeks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        weekStart: { type: string, format: date }
+                        weekEnd: { type: string, format: date }
+                        created: { type: integer }
+                        completed: { type: integer }
+                        completionRate: { type: number, nullable: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }

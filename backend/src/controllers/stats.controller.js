@@ -1,5 +1,5 @@
 const statsService = require('../services/stats.service');
-const { validateHeatmapQuery } = require('../validators/stats.validator');
+const { validateHeatmapQuery, validateWeeklyQuery } = require('../validators/stats.validator');
 
 async function summary(req, res) {
   res.status(200).json(await statsService.summary(req.user.id));
@@ -9,4 +9,8 @@ async function heatmap(req, res) {
   res.status(200).json(await statsService.heatmap(req.user.id, validateHeatmapQuery(req.query)));
 }
 
-module.exports = { summary, heatmap };
+async function weekly(req, res) {
+  res.status(200).json(await statsService.weekly(req.user.id, validateWeeklyQuery(req.query)));
+}
+
+module.exports = { summary, heatmap, weekly };

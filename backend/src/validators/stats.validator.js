@@ -31,4 +31,18 @@ function validateHeatmapQuery(query) {
   return { from: query.from, to: query.to, timezone };
 }
 
-module.exports = { validateHeatmapQuery };
+function validateWeeklyQuery(query) {
+  const errors = [];
+  const timezone = query.tz ?? 'UTC';
+  checkTimezone(timezone, errors);
+
+  const weeks = query.weeks === undefined ? 12 : Number(query.weeks);
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 104) {
+    errors.push({ field: 'weeks', message: 'weeks doit être un entier entre 1 et 104' });
+  }
+
+  if (errors.length) throw AppError.badRequest('Paramètres invalides', errors);
+  return { weeks, timezone };
+}
+
+module.exports = { validateHeatmapQuery, validateWeeklyQuery };

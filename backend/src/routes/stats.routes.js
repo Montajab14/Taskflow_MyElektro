@@ -8,5 +8,6 @@ router.use(requireAuth);
 
 router.get('/summary', controller.summary);
 router.get('/heatmap', controller.heatmap);
+router.get('/weekly', controller.weekly);
 
 module.exports = router;
