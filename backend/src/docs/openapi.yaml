@@ -126,6 +126,11 @@ components:
       in: path
       required: true
       schema: { type: string }
+    Timezone:
+      name: tz
+      in: query
+      description: Fuseau IANA utilisé pour découper les jours (défaut UTC)
+      schema: { type: string, example: Europe/Paris }
   responses:
     BadRequest:
       description: Données invalides
@@ -355,4 +360,40 @@ paths:
                       high: { type: integer }
                   overdue: { type: integer, example: 2 }
                   completionRate: { type: number, example: 0.333 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/stats/heatmap:
+    get:
+      tags: [Stats]
+      summary: Tâches terminées par jour (B3)
+      description: Renvoie chaque jour de la période, y compris ceux à 0. Par défaut, les 365 derniers jours.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Série journalière
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+                  timezone: { type: string }
+                  total: { type: integer }
+                  max: { type: integer }
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        count: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }

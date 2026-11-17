@@ -7,5 +7,6 @@ const router = Router();
 router.use(requireAuth);
 
 router.get('/summary', controller.summary);
+router.get('/heatmap', controller.heatmap);
 
 module.exports = router;
