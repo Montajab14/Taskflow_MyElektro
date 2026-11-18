@@ -39,23 +39,22 @@ services:
       - taskflow-network
 
   # -----------------------------------------------------------
-  # 3. Application Node.js (Backend TaskFlow)
+  # 3. Front (HTML/CSS/JS servi par Node.js, dossier frontend/)
   # -----------------------------------------------------------
-  backend:
-    build: .
-    container_name: taskflow-backend
+  frontend:
+    build: ./frontend
+    container_name: taskflow-frontend
     restart: always
     ports:
       # Même port qu'en local (npm start) : le front est sur http://localhost:3000
       - "3000:3000"
     environment:
       - PORT=3000
-      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD}@mongodb:27017/taskflow?authSource=admin
     volumes:
-      # Synchronisation du code en direct (hot-reload)
-      - ./src:/app/src
+      # Synchronisation du code en direct : une modification du front est visible sans rebuild
+      - ./frontend/src:/app/src
     depends_on:
-      - mongodb
+      - api
     networks:
       - taskflow-network
 
