@@ -1,74 +1,105 @@
-# 📋 TaskFlow — Page d'Authentification
+# TaskFlow
 
-Projet d'authentification moderne pour l'application **TaskFlow** (Connexion et Inscription avec mot de passe).
+Application web de gestion de tâches : chaque utilisateur crée un compte, se connecte et gère ses propres tâches. Une API REST sécurisée par JWT stocke les données dans MongoDB, et un front web les affiche.
+
+| Partie | Technologies | Dossier |
+| --- | --- | --- |
+| Front | HTML, CSS et JavaScript natifs, serveur Node.js | [`frontend/`](frontend/README.md) |
+| API | Node.js 20+, Express 5, Mongoose, JWT, bcrypt, Swagger | [`backend/`](backend/README.md) |
+| Base de données | MongoDB 7 | lancée par `docker-compose.yml` |
+| Tests | Jest, Supertest, mongodb-memory-server (166 tests) | `backend/tests/` |
 
 ---
 
-## 🏗️ Architecture du Projet
+## Structure du dépôt
 
 ```text
-Tastkflow/
-├── package.json          # Configuration npm et scripts de lancement
-├── README.md             # Guide d'utilisation du projet
-├── docker-compose.yml    # MongoDB, Mongo Express, front et API
-├── backend/              # API REST Express + MongoDB (voir backend/README.md)
-└── src/
-    ├── index.html        # Page HTML principale (Auth Login / Inscription)
-    ├── index.js          # Serveur Node.js natif (exécuté avec `npm start`)
-    ├── css/
-    │   └── style.css     # Styles CSS modernes et responsive
-    └── js/
-        └── script.js     # Logique JS (onglets, force mot de passe, validation, notifications)
+.
+├── frontend/             # interface web (voir frontend/README.md)
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src/              # index.html, css/, js/ et le serveur index.js
+├── backend/              # API REST (voir backend/README.md)
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── src/              # routes, contrôleurs, services, modèles, validateurs
+│   └── tests/            # tests d'intégration et unitaires
+├── docker-compose.yml    # MongoDB, Mongo Express, API et front
+├── .env.example          # variables du docker-compose (à copier en .env)
+└── README.md
 ```
 
 ---
 
-## 🚀 Comment lancer le projet ?
+## Démarrage rapide (Docker)
 
-### Méthode 1 : Sans Node.js (Directement dans le navigateur)
-Vous pouvez simplement ouvrir le fichier `src/index.html` :
-- **Double-cliquez** sur `src/index.html` dans l'explorateur Windows, ou
-- Faites un clic droit > **Ouvrir avec** > **Google Chrome** (ou votre navigateur préféré).
-- Si vous utilisez l'extension **Live Server** dans VS Code : faites un clic droit sur `src/index.html` > **Open with Live Server**.
+Prérequis : Docker avec Docker Compose.
 
-### Méthode 2 : Avec Node.js (Serveur local)
-Une fois Node.js installé sur votre machine :
 ```bash
-# Lancer le serveur local :
-npm start
-
-# Ou avec rechargement automatique en développement :
-npm run dev
+cp .env.example .env      # puis renseigner MONGO_ROOT_PASSWORD et JWT_SECRET
+docker compose up -d --build
 ```
-Puis ouvrez votre navigateur à l'adresse : **[http://localhost:3000](http://localhost:3000)**.
+
+| Service | Adresse |
+| --- | --- |
+| Front | http://localhost:3000 |
+| API | http://localhost:3001/api |
+| Documentation de l'API (Swagger) | http://localhost:3001/api/docs |
+| Mongo Express (voir la base) | http://localhost:8081 |
+| MongoDB | `localhost:27017` |
+
+Si le port 27017 est déjà pris sur votre machine, lancez `MONGO_PORT=27019 docker compose up -d --build`.
+
+Pour tout arrêter : `docker compose down`. Pour effacer aussi la base : `docker compose down -v`.
+
+Aucun identifiant n'est versionné : le compose refuse de démarrer tant que `MONGO_ROOT_PASSWORD` n'est pas renseigné dans `.env`, et l'API refuse de démarrer sans `JWT_SECRET`.
 
 ---
 
-## ✨ Fonctionnalités incluses
+## Développement sans Docker
 
-- 🔄 **Bascule d'onglets fluide** entre *Connexion* et *Inscription*.
-- 👁️ **Affichage / Masquage du mot de passe** en un clic.
-- 🔒 **Indicateur de force du mot de passe** en temps réel (couleur + jauge + libellé).
-- ✅ **Validation complète des entrées** (format email, taille de mot de passe, confirmation identique, CGU).
-- 💾 **Persistance simulée via `localStorage`** (vous pouvez créer un compte et vous connecter immédiatement).
-- 🏷️ **Compte démo intégré** :
-  - **Email** : `demo@taskflow.io`
-  - **Mot de passe** : `TaskFlow2026!`
-
----
-
-## 🔌 API backend
-
-L'API REST (Express, MongoDB, JWT) se trouve dans [`backend/`](backend/README.md) : inscription, connexion, CRUD des tâches privées à chaque compte, filtres, heatmap et statistiques.
+Chaque partie se lance seule depuis son dossier. MongoDB peut rester dans Docker :
 
 ```bash
 cp .env.example .env                 # puis renseigner MONGO_ROOT_PASSWORD et JWT_SECRET
-docker compose up -d mongodb          # base de données
-cd backend && npm install && cp .env.example .env   # puis renseigner JWT_SECRET
-npm run dev                           # API sur http://localhost:3001
+docker compose up -d mongodb         # base de données seule
+
+cd backend
+npm install
+cp .env.example .env                 # puis renseigner MONGO_URI et JWT_SECRET
+npm run dev                          # API sur http://localhost:3001
+npm test                             # 166 tests, sans base à installer
+
+cd ../frontend
+npm start                            # front sur http://localhost:3000
 ```
 
-- Documentation interactive (Swagger) : http://localhost:3001/api/docs
-- Tests : `npm test` dans `backend/`
+Les détails sont dans [`backend/README.md`](backend/README.md) et [`frontend/README.md`](frontend/README.md).
 
-Le détail (routes, format des erreurs, confidentialité des données) est dans [`backend/README.md`](backend/README.md).
+---
+
+## Fonctionnalités
+
+**Socle**
+
+- Inscription et connexion : mots de passe hachés avec bcrypt, sessions par jeton JWT.
+- Tâches privées : création, lecture, modification et suppression. Un utilisateur ne voit jamais les tâches d'un autre (réponse 404).
+- Validation de toutes les entrées, avec des erreurs détaillées champ par champ : `{ error, details: [{ field, message }] }`.
+- Protection contre les essais de mots de passe en série : après 10 échecs, l'API répond 429 pendant 15 minutes.
+
+**Bonus**
+
+- **B1, priorités et filtres** : priorité `low`, `medium` ou `high` ; filtres par statut, priorité, échéance, retard, texte ; tri ; compteur par statut.
+- **B2, habitudes** : on coche une habitude jour par jour, avec la série en cours et la meilleure série.
+- **B3, heatmap** : tâches terminées par jour sur l'année.
+- **B4, statistiques** : tâches créées et terminées par semaine, avec le taux de complétion.
+
+La liste complète des routes est dans [`backend/README.md`](backend/README.md#routes), et testable dans Swagger.
+
+---
+
+## Organisation du travail
+
+- Une branche par fonctionnalité (`feat/…`, `fix/…`, `refactor/…`), fusionnée dans la branche de sa partie (`backend` ou `frontend`), puis dans `main`.
+- Messages de commit au format [Conventional Commits](https://www.conventionalcommits.org/fr/v1.0.0/) : `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `chore`.
+- Les fichiers `.env`, les secrets et `node_modules/` ne sont jamais versionnés.

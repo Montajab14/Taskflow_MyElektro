@@ -1,12 +1,12 @@
 # ==============================================================================
-# TaskFlow — Fichier .gitignore
+# TaskFlow — fichiers à ne jamais versionner (front, back et racine)
 # ==============================================================================
 
 # Dépendances Node.js
 node_modules/
 package-lock.json.bak
 
-# Variables d'environnement & Secrets
+# Variables d'environnement et secrets (.env à la racine, backend/.env…)
 .env
 .env.local
 .env.development.local
@@ -14,18 +14,18 @@ package-lock.json.bak
 .env.production.local
 *.pem
 
-# Fichiers de logs
+# Journaux
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Docker & Données locales (MongoDB, volumes temporaires)
+# Docker et données locales
 mongo_data/
 docker-compose.override.yml
 
-# Builds, Couverture de tests & Caches
+# Builds, couverture de tests et caches
 dist/
 build/
 coverage/
@@ -34,7 +34,7 @@ coverage/
 tmp/
 temp/
 
-# Fichiers système (Windows / macOS / Linux)
+# Fichiers système (Windows, macOS, Linux)
 .DS_Store
 .DS_Store?
 ._*
@@ -44,52 +44,7 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Configurations d'éditeurs & IDEs
-.idea/
-.vscode/
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.swo
-*~
-
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.pem
-
-# Fichiers de logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# Docker & Données locales (MongoDB, volumes temporaires)
-mongo_data/
-docker-compose.override.yml
-
-# Builds, Couverture de tests & Caches
-dist/
-build/
-coverage/
-.nyc_output/
-.cache/
-tmp/
-temp/
-
-# Fichiers système (Windows / macOS / Linux)
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-desktop.ini
-
-# Configurations d'éditeurs & IDEs
+# Éditeurs et IDE
 .idea/
 .vscode/
 *.sublime-project
