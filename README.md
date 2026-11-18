@@ -62,6 +62,7 @@ Puis ouvrez votre navigateur à l'adresse : **[http://localhost:3000](http://loc
 L'API REST (Express, MongoDB, JWT) se trouve dans [`backend/`](backend/README.md) : inscription, connexion, CRUD des tâches privées à chaque compte, filtres, heatmap et statistiques.
 
 ```bash
+cp .env.example .env                 # puis renseigner MONGO_ROOT_PASSWORD et JWT_SECRET
 docker compose up -d mongodb          # base de données
 cd backend && npm install && cp .env.example .env   # puis renseigner JWT_SECRET
 npm run dev                           # API sur http://localhost:3001
