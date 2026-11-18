@@ -1,0 +1,13 @@
+{
+  "name": "taskflow",
+  "private": true,
+  "description": "TaskFlow : lance MongoDB, l'API et le front avec Docker en une commande",
+  "scripts": {
+    "start": "node scripts/start.js",
+    "stop": "node scripts/start.js down",
+    "logs": "node scripts/start.js logs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
