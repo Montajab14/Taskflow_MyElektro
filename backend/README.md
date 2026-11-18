@@ -31,7 +31,9 @@ npm run dev     # avec rechargement automatique (nodemon)
 npm start       # sans rechargement
 ```
 
-Le `MONGO_URI` de `.env.example` pointe déjà vers ce conteneur (`admin` / `secret123`, base `taskflow`).
+Avant le premier lancement, créez un fichier `.env` à la racine du dépôt à partir de `.env.example` et choisissez un `MONGO_ROOT_PASSWORD` : le docker-compose refuse de démarrer sans lui. Dans `backend/.env`, remplacez `<mot-de-passe>` du `MONGO_URI` par cette même valeur (utilisateur `admin`, base `taskflow`).
+
+Aucun identifiant n'est écrit dans le dépôt. MongoDB ne lit le mot de passe qu'à la création du volume `mongo_data` : si ce volume existe déjà avec un autre mot de passe, gardez l'ancien dans `.env` ou repartez d'une base vide avec `docker compose down -v`.
 Avec MongoDB Atlas, collez simplement l'URI de connexion dans `MONGO_URI`.
 
 - API : http://localhost:3001 (le port 3000 est celui du serveur du front)
@@ -40,7 +42,7 @@ Avec MongoDB Atlas, collez simplement l'URI de connexion dans `MONGO_URI`.
 
 ### Option 2 : tout dans Docker
 
-À la racine du dépôt, créez un fichier `.env` contenant `JWT_SECRET=...` (voir `.env.example`), puis :
+À la racine du dépôt, créez un fichier `.env` contenant `MONGO_ROOT_PASSWORD=...` et `JWT_SECRET=...` (voir `.env.example`), puis :
 
 ```bash
 docker compose up -d --build
