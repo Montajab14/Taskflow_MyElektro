@@ -1,15 +1,15 @@
 {
-  "name": "taskflow",
+  "name": "myelektro-frontend",
   "version": "1.0.0",
-  "description": "Application TaskFlow - Page d'authentification et gestion de tâches",
+  "description": "MyElektro - front : suivi des étapes de projets électroniques",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js"
   },
   "keywords": [
+    "myelektro",
     "taskflow",
-    "auth",
     "javascript"
   ],
   "author": "",
