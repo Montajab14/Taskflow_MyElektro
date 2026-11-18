@@ -1,6 +1,7 @@
 // Validation côté client : mêmes règles que l'API (le serveur reste l'autorité).
 (function (root) {
   const STATUSES = ['todo', 'doing', 'done'];
+  const PRIORITIES = ['low', 'medium', 'high'];
 
   function isRealDate(value) {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -22,13 +23,17 @@
     if (!STATUSES.includes(input.status)) {
       errors.push({ field: 'status', message: 'Le statut doit être todo, doing ou done.' });
     }
+    const priority = input.priority || 'medium';
+    if (!PRIORITIES.includes(priority)) {
+      errors.push({ field: 'priority', message: 'La priorité doit être low, medium ou high.' });
+    }
     if (typeof description !== 'string' || description.length > 1000) {
       errors.push({ field: 'description', message: 'La description ne doit pas dépasser 1000 caractères.' });
     }
     if (dueDate !== null && !isRealDate(dueDate)) {
       errors.push({ field: 'dueDate', message: "L'échéance doit être une vraie date (AAAA-MM-JJ)." });
     }
-    return { errors, value: { title, status: input.status, description, dueDate } };
+    return { errors, value: { title, status: input.status, priority, description, dueDate } };
   }
 
   function validateCredentials({ email, password, name }, { isRegister }) {
@@ -47,7 +52,7 @@
     return errors;
   }
 
-  const api = { STATUSES, isRealDate, validateTask, validateCredentials };
+  const api = { STATUSES, PRIORITIES, isRealDate, validateTask, validateCredentials };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Validate = api;
 })(typeof window !== 'undefined' ? window : globalThis);

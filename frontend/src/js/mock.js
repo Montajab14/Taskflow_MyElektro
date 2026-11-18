@@ -22,8 +22,10 @@ window.MockApi = (function () {
 
   const publicUser = (u) => ({ id: u.id, email: u.email, name: u.name || null });
 
-  async function handle(method, path, body, token) {
+  async function handle(method, fullPath, body, token) {
     const db = load();
+    const [path, qs = ''] = fullPath.split('?');
+    const query = Object.fromEntries(new URLSearchParams(qs));
 
     if (method === 'POST' && path === '/auth/register') {
       const errors = Validate.validateCredentials(body || {}, { isRegister: true });
@@ -50,8 +52,35 @@ window.MockApi = (function () {
 
     const mine = db.tasks.filter((t) => t.userId === user.id);
 
+    const today = new Date().toLocaleDateString('sv-SE');
+    const isLate = (t) => t.dueDate && t.status !== 'done' && t.dueDate < today;
+
     if (path === '/tasks' && method === 'GET') {
-      return mine.map(({ userId, ...t }) => t).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      let list = mine.map(({ userId, ...t }) => ({ priority: 'medium', ...t }));
+      if (query.status) list = list.filter((t) => query.status.split(',').includes(t.status));
+      if (query.priority) list = list.filter((t) => query.priority.split(',').includes(t.priority));
+      if (query.overdue === 'true') list = list.filter(isLate);
+      if (query.q) {
+        const q = query.q.toLowerCase();
+        list = list.filter((t) => `${t.title} ${t.description}`.toLowerCase().includes(q));
+      }
+      const sort = query.sort || '-createdAt';
+      const key = sort.replace('-', '');
+      const dir = sort.startsWith('-') ? -1 : 1;
+      // Comme MongoDB : les échéances vides passent en premier en ordre croissant
+      return list.sort((a, b) => dir * String(a[key] ?? '').localeCompare(String(b[key] ?? '')));
+    }
+
+    if (path === '/stats/summary' && method === 'GET') {
+      const byStatus = { todo: 0, doing: 0, done: 0 };
+      const byPriority = { low: 0, medium: 0, high: 0 };
+      mine.forEach((t) => { byStatus[t.status] += 1; byPriority[t.priority || 'medium'] += 1; });
+      const total = mine.length;
+      return {
+        total, byStatus, byPriority,
+        overdue: mine.filter(isLate).length,
+        completionRate: total ? Math.round((byStatus.done / total) * 1000) / 1000 : 0,
+      };
     }
 
     if (path === '/tasks' && method === 'POST') {
@@ -84,7 +113,7 @@ window.MockApi = (function () {
       }
     }
 
-    throw fail(404, `Route introuvable : ${method} ${path}`);
+    throw fail(404, `Le mode mock ne gère pas ${method} ${path} : passez useMock à false pour utiliser l'API`);
   }
 
   return { handle };

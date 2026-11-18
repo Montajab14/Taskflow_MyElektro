@@ -53,10 +53,17 @@
   <!-- ============ APPLICATION ============ -->
   <div id="view-app" hidden>
     <header class="topbar">
-      <a class="brand" href="#/tasks"><span class="brand-chip" aria-hidden="true"></span><span class="brand-name">MyElektro</span></a>
+      <div class="topbar-left">
+        <a class="brand" href="#/tasks"><span class="brand-chip" aria-hidden="true"></span><span class="brand-name">MyElektro</span></a>
+        <nav class="nav" aria-label="Sections">
+          <a href="#/tasks" data-nav="tasks">Étapes</a>
+          <a href="#/habits" data-nav="habits">Habitudes</a>
+          <a href="#/activity" data-nav="activity">Activité</a>
+        </nav>
+      </div>
       <div class="topbar-right">
         <span id="whoami" class="whoami"></span>
-        <button id="btn-logout" class="btn ghost small"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>Déconnexion</button>
+        <button id="btn-logout" class="btn ghost small"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span class="btn-label">Déconnexion</span></button>
       </div>
     </header>
 
@@ -66,7 +73,7 @@
   <!-- Modale de confirmation de suppression -->
   <dialog id="dlg-delete" class="dialog">
     <form method="dialog">
-      <h2>Supprimer cette étape ?</h2>
+      <h2 id="dlg-delete-title">Supprimer cette étape ?</h2>
       <p id="dlg-delete-text"></p>
       <div class="dialog-actions">
         <button class="btn ghost" value="cancel">Annuler</button>
