@@ -10,6 +10,8 @@ Projet d'authentification moderne pour l'application **TaskFlow** (Connexion et 
 Tastkflow/
 ├── package.json          # Configuration npm et scripts de lancement
 ├── README.md             # Guide d'utilisation du projet
+├── docker-compose.yml    # MongoDB, Mongo Express, front et API
+├── backend/              # API REST Express + MongoDB (voir backend/README.md)
 └── src/
     ├── index.html        # Page HTML principale (Auth Login / Inscription)
     ├── index.js          # Serveur Node.js natif (exécuté avec `npm start`)
@@ -53,3 +55,20 @@ Puis ouvrez votre navigateur à l'adresse : **[http://localhost:3000](http://loc
   - **Email** : `demo@taskflow.io`
   - **Mot de passe** : `TaskFlow2026!`
 
+---
+
+## 🔌 API backend
+
+L'API REST (Express, MongoDB, JWT) se trouve dans [`backend/`](backend/README.md) : inscription, connexion, CRUD des tâches privées à chaque compte, filtres, heatmap et statistiques.
+
+```bash
+cp .env.example .env                 # puis renseigner MONGO_ROOT_PASSWORD et JWT_SECRET
+docker compose up -d mongodb          # base de données
+cd backend && npm install && cp .env.example .env   # puis renseigner JWT_SECRET
+npm run dev                           # API sur http://localhost:3001
+```
+
+- Documentation interactive (Swagger) : http://localhost:3001/api/docs
+- Tests : `npm test` dans `backend/`
+
+Le détail (routes, format des erreurs, confidentialité des données) est dans [`backend/README.md`](backend/README.md).

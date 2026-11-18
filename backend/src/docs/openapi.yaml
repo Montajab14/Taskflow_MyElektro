@@ -1,0 +1,677 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow API
+  version: 1.0.0
+  description: |
+    API REST de TaskFlow, gestionnaire de tâches personnelles.
+
+    **Authentification** : `POST /api/auth/register` ou `POST /api/auth/login` renvoie un JWT.
+    Cliquez sur **Authorize** et collez ce jeton : il sera envoyé dans l'en-tête
+    `Authorization: Bearer <token>`.
+
+    **Confidentialité** : chaque tâche appartient au compte qui l'a créée. Une tâche
+    d'un autre compte répond toujours `404`, comme si elle n'existait pas.
+
+    **Erreurs** : toutes les erreurs ont le format `{ "error": "...", "details": [...] }`,
+    `details` n'étant présent que pour les erreurs de validation.
+servers:
+  - url: http://localhost:3001
+tags:
+  - name: Auth
+  - name: Tasks
+  - name: Stats
+    description: Bonus B1, B3, B4
+  - name: Habits
+    description: Bonus B2, suivi d'habitudes
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Credentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: alice@example.com }
+        password: { type: string, minLength: 8, maxLength: 72, example: motdepasse123 }
+    RegisterInput:
+      allOf:
+        - $ref: '#/components/schemas/Credentials'
+        - type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+              minLength: 2
+              maxLength: 60
+              description: Facultatif
+              example: Alice Martin
+    User:
+      type: object
+      properties:
+        id: { type: string, example: 6650c0ffee0000000000abcd }
+        email: { type: string, example: alice@example.com }
+        name: { type: string, nullable: true, example: Alice Martin }
+        createdAt: { type: string, format: date-time }
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string, example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... }
+        user: { $ref: '#/components/schemas/User' }
+    TaskInput:
+      type: object
+      required: [title, status]
+      properties:
+        title:
+          type: string
+          description: 1 à 120 caractères après suppression des espaces
+          example: Réviser la soutenance
+        status: { type: string, enum: [todo, doing, done], example: todo }
+        description:
+          type: string
+          maxLength: 1000
+          description: Facultatif, chaîne vide acceptée
+          example: ''
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+          description: Date réelle au format YYYY-MM-DD, ou null
+          example: '2026-12-15'
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+          description: Bonus B1
+    TaskPatch:
+      type: object
+      minProperties: 1
+      description: Mêmes règles que TaskInput, mais tous les champs sont facultatifs.
+      properties:
+        title: { type: string }
+        status: { type: string, enum: [todo, doing, done] }
+        description: { type: string }
+        dueDate: { type: string, format: date, nullable: true }
+        priority: { type: string, enum: [low, medium, high] }
+    Task:
+      type: object
+      properties:
+        id: { type: string, example: 6650c0ffee0000000000beef }
+        title: { type: string, example: Réviser la soutenance }
+        description: { type: string, example: '' }
+        status: { type: string, enum: [todo, doing, done] }
+        priority: { type: string, enum: [low, medium, high] }
+        dueDate: { type: string, format: date, nullable: true, example: '2026-12-15' }
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Renseigné automatiquement quand la tâche passe à done
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    HabitInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: 1 à 80 caractères après suppression des espaces
+          example: Lire 20 minutes
+        description: { type: string, maxLength: 500, example: '' }
+    HabitPatch:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string }
+        description: { type: string }
+    Habit:
+      type: object
+      properties:
+        id: { type: string, example: 6650c0ffee0000000000f00d }
+        name: { type: string, example: Lire 20 minutes }
+        description: { type: string, example: '' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    HabitWithStats:
+      allOf:
+        - $ref: '#/components/schemas/Habit'
+        - type: object
+          properties:
+            stats:
+              type: object
+              properties:
+                total: { type: integer, example: 12 }
+                currentStreak:
+                  type: integer
+                  example: 3
+                  description: Jours consécutifs jusqu'à aujourd'hui, ou jusqu'à hier
+                longestStreak: { type: integer, example: 7 }
+                lastCompletedOn: { type: string, format: date, nullable: true }
+                doneToday: { type: boolean }
+    HabitCompletion:
+      type: object
+      properties:
+        date: { type: string, format: date, example: '2026-11-17' }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: Données invalides }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string, nullable: true, example: title }
+              message: { type: string, example: Le titre doit contenir entre 1 et 120 caractères }
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    HabitId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    CompletionDate:
+      name: date
+      in: path
+      required: true
+      description: Jour au format YYYY-MM-DD, pas dans le futur
+      schema: { type: string, format: date }
+    Timezone:
+      name: tz
+      in: query
+      description: Fuseau IANA utilisé pour découper les jours (défaut UTC)
+      schema: { type: string, example: Europe/Paris }
+  responses:
+    BadRequest:
+      description: Données invalides
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Jeton absent, invalide ou expiré
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Ressource inexistante ou appartenant à un autre compte
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Créer un compte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterInput' }
+      responses:
+        '201':
+          description: Compte créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: E-mail déjà utilisé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Trop de tentatives en échec depuis cette adresse IP
+          headers:
+            Retry-After:
+              description: Secondes à attendre avant de réessayer
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Se connecter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Credentials' }
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: E-mail ou mot de passe incorrect
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Trop de tentatives en échec depuis cette adresse IP
+          headers:
+            Retry-After:
+              description: Secondes à attendre avant de réessayer
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Compte connecté
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Compte associé au jeton
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: Lister ses tâches
+      description: Ne renvoie que les tâches du compte connecté. Les filtres sont le bonus B1.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          description: Un ou plusieurs statuts séparés par des virgules
+          schema: { type: string, example: todo,doing }
+        - name: priority
+          in: query
+          description: Une ou plusieurs priorités séparées par des virgules
+          schema: { type: string, example: high }
+        - name: dueAfter
+          in: query
+          description: Échéance au plus tôt ce jour (inclus)
+          schema: { type: string, format: date }
+        - name: dueBefore
+          in: query
+          description: Échéance au plus tard ce jour (inclus)
+          schema: { type: string, format: date }
+        - name: overdue
+          in: query
+          description: true pour ne garder que les tâches non terminées dont l'échéance est passée
+          schema: { type: string, enum: ['true', 'false'] }
+        - name: tz
+          in: query
+          description: Fuseau IANA définissant « aujourd'hui » pour overdue (défaut UTC)
+          schema: { type: string, example: Europe/Paris }
+        - name: q
+          in: query
+          description: Recherche dans le titre (insensible à la casse)
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: -createdAt
+            enum: [createdAt, -createdAt, dueDate, -dueDate, title, -title, updatedAt, -updatedAt]
+      responses:
+        '200':
+          description: Tableau des tâches
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Tasks]
+      summary: Créer une tâche
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskInput' }
+      responses:
+        '201':
+          description: Tâche créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      tags: [Tasks]
+      summary: Détail d'une tâche
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: La tâche
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Tasks]
+      summary: Remplacer une tâche
+      description: Les champs facultatifs absents reprennent leur valeur par défaut.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskInput' }
+      responses:
+        '200':
+          description: Tâche modifiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Tasks]
+      summary: Modifier une partie d'une tâche
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskPatch' }
+      responses:
+        '200':
+          description: Tâche modifiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Tasks]
+      summary: Supprimer une tâche
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Tâche supprimée }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/stats/summary:
+    get:
+      tags: [Stats]
+      summary: Compteurs de tâches (B1)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tz
+          in: query
+          description: Fuseau IANA définissant « aujourd'hui » pour compter les tâches en retard (défaut UTC)
+          schema: { type: string, example: Europe/Paris }
+      responses:
+        '200':
+          description: Compteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer, example: 12 }
+                  byStatus:
+                    type: object
+                    properties:
+                      todo: { type: integer, example: 5 }
+                      doing: { type: integer, example: 3 }
+                      done: { type: integer, example: 4 }
+                  byPriority:
+                    type: object
+                    properties:
+                      low: { type: integer }
+                      medium: { type: integer }
+                      high: { type: integer }
+                  overdue: { type: integer, example: 2 }
+                  completionRate: { type: number, example: 0.333 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/stats/heatmap:
+    get:
+      tags: [Stats]
+      summary: Tâches terminées par jour (B3)
+      description: Renvoie chaque jour de la période, y compris ceux à 0. Par défaut, les 365 derniers jours.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Série journalière
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+                  timezone: { type: string }
+                  total: { type: integer }
+                  max: { type: integer }
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        count: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/stats/weekly:
+    get:
+      tags: [Stats]
+      summary: Taux de complétion par semaine (B4)
+      description: |
+        Une entrée par semaine (lundi à dimanche), de la plus ancienne à la plus récente.
+        `completionRate` est la part des tâches créées cette semaine-là qui sont terminées,
+        ou null si aucune tâche n'a été créée.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: weeks
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 104, default: 12 }
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Série hebdomadaire
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timezone: { type: string }
+                  weeks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        weekStart: { type: string, format: date }
+                        weekEnd: { type: string, format: date }
+                        created: { type: integer }
+                        completed: { type: integer }
+                        completionRate: { type: number, nullable: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/habits:
+    get:
+      tags: [Habits]
+      summary: Lister ses habitudes, avec leurs séries
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: Habitudes du compte, de la plus ancienne à la plus récente
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HabitWithStats' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Habits]
+      summary: Créer une habitude
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HabitInput' }
+      responses:
+        '201':
+          description: Habitude créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Habit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/habits/{id}:
+    parameters:
+      - $ref: '#/components/parameters/HabitId'
+    get:
+      tags: [Habits]
+      summary: Détail d'une habitude, avec ses séries
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '200':
+          description: L'habitude
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HabitWithStats' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Habits]
+      summary: Remplacer une habitude
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HabitInput' }
+      responses:
+        '200':
+          description: Habitude modifiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Habit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Habits]
+      summary: Modifier une partie d'une habitude
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HabitPatch' }
+      responses:
+        '200':
+          description: Habitude modifiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Habit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Habits]
+      summary: Supprimer une habitude et ses réalisations
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Habitude supprimée }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/habits/{id}/completions:
+    parameters:
+      - $ref: '#/components/parameters/HabitId'
+    get:
+      tags: [Habits]
+      summary: Réalisations d'une habitude
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Réalisations triées par date
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HabitCompletion' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/habits/{id}/completions/{date}:
+    parameters:
+      - $ref: '#/components/parameters/HabitId'
+      - $ref: '#/components/parameters/CompletionDate'
+    put:
+      tags: [Habits]
+      summary: Cocher un jour
+      description: Idempotent. Les jours futurs sont refusés ; « aujourd'hui » dépend de tz.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '201':
+          description: Jour coché
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HabitCompletion' }
+        '200':
+          description: Jour déjà coché, rien n'a changé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HabitCompletion' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Habits]
+      summary: Décocher un jour
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Timezone'
+      responses:
+        '204': { description: Jour décoché }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
