@@ -24,21 +24,29 @@ Application web de gestion de tâches : chaque utilisateur crée un compte, se c
 │   ├── package.json
 │   ├── src/              # routes, contrôleurs, services, modèles, validateurs
 │   └── tests/            # tests d'intégration et unitaires
+├── scripts/start.js      # npm start : prépare .env et lance le docker-compose
 ├── docker-compose.yml    # MongoDB, Mongo Express, API et front
-├── .env.example          # variables du docker-compose (à copier en .env)
+├── .env.example          # modèle du .env (créé automatiquement par npm start)
+├── package.json          # npm start, npm stop, npm run logs
 └── README.md
 ```
 
 ---
 
-## Démarrage rapide (Docker)
+## Démarrage rapide
 
-Prérequis : Docker avec Docker Compose.
+Prérequis : Node.js 20 ou plus récent, et Docker (Docker Desktop, ou Colima sur macOS).
 
 ```bash
-cp .env.example .env      # puis renseigner MONGO_ROOT_PASSWORD et JWT_SECRET
-docker compose up -d --build
+npm start
 ```
+
+Cette seule commande, à lancer à la racine du dépôt :
+
+- crée le fichier `.env` au premier lancement, avec un mot de passe MongoDB et un secret JWT générés au hasard ;
+- choisit un autre port pour MongoDB si 27017 est déjà pris sur la machine, et le garde dans `.env` ;
+- démarre Docker s'il est arrêté (Colima) ;
+- construit et lance MongoDB, l'API, le front et Mongo Express, puis attend que l'API réponde.
 
 | Service | Adresse |
 | --- | --- |
@@ -46,13 +54,17 @@ docker compose up -d --build
 | API | http://localhost:3001/api |
 | Documentation de l'API (Swagger) | http://localhost:3001/api/docs |
 | Mongo Express (voir la base) | http://localhost:8081 |
-| MongoDB | `localhost:27017` |
+| MongoDB | `localhost:27017`, ou le port affiché au lancement |
 
-Si le port 27017 est déjà pris sur votre machine, lancez `MONGO_PORT=27019 docker compose up -d --build`.
+| Commande | Effet |
+| --- | --- |
+| `npm start` | lance tout (sans risque si c'est déjà lancé) |
+| `npm stop` | arrête tout, les données de la base sont conservées |
+| `npm run logs` | affiche les journaux des conteneurs en direct |
 
-Pour tout arrêter : `docker compose down`. Pour effacer aussi la base : `docker compose down -v`.
+Pour effacer aussi la base : `docker compose down -v`.
 
-Aucun identifiant n'est versionné : le compose refuse de démarrer tant que `MONGO_ROOT_PASSWORD` n'est pas renseigné dans `.env`, et l'API refuse de démarrer sans `JWT_SECRET`.
+Aucun identifiant n'est versionné : le `.env` reste sur votre machine. MongoDB ne lit son mot de passe qu'à la création de la base, donc ne modifiez pas `MONGO_ROOT_PASSWORD` dans `.env` une fois la base créée, sauf à repartir d'une base vide.
 
 ---
 
@@ -61,8 +73,8 @@ Aucun identifiant n'est versionné : le compose refuse de démarrer tant que `MO
 Chaque partie se lance seule depuis son dossier. MongoDB peut rester dans Docker :
 
 ```bash
-cp .env.example .env                 # puis renseigner MONGO_ROOT_PASSWORD et JWT_SECRET
-docker compose up -d mongodb         # base de données seule
+npm start                            # crée .env et lance tout, dont la base
+docker compose stop api frontend     # garde seulement la base (et Mongo Express)
 
 cd backend
 npm install
