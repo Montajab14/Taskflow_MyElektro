@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MyElektro — Vos projets électroniques, étape par étape</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,8 +15,8 @@
   <!-- ============ AUTHENTIFICATION ============ -->
   <main id="view-auth" class="auth" hidden>
     <section class="auth-card">
-      <div class="brand"><span class="brand-chip" aria-hidden="true"></span><span class="brand-name">My<span>Elektro</span></span></div>
-      <p class="tagline">Chaque projet est un circuit : suivez-le étape par étape.</p>
+      <div class="brand"><span class="brand-chip" aria-hidden="true"></span><span class="brand-name">MyElektro</span></div>
+      <p class="tagline">Chaque projet est un circuit : suivez-le étape par étape</p>
 
       <div class="tabs" role="tablist">
         <button class="tab active" role="tab" data-tab="login" aria-selected="true">Connexion</button>
@@ -28,21 +31,21 @@
           <input id="login-password" name="password" type="password" autocomplete="current-password" required>
           <p class="err" data-err="password"></p></div>
         <p class="err form-err" data-err="_form"></p>
-        <button class="btn primary" type="submit">Se connecter</button>
+        <button class="btn primary block" type="submit">Se connecter</button>
       </form>
 
       <form id="form-register" class="form" novalidate hidden>
-        <div class="field"><label for="reg-name">Nom <small>(facultatif)</small></label>
+        <div class="field"><label for="reg-name">Nom <small>facultatif</small></label>
           <input id="reg-name" name="name" type="text" autocomplete="name">
           <p class="err" data-err="name"></p></div>
         <div class="field"><label for="reg-email">E-mail</label>
           <input id="reg-email" name="email" type="email" autocomplete="email" required>
           <p class="err" data-err="email"></p></div>
-        <div class="field"><label for="reg-password">Mot de passe <small>(8 caractères min.)</small></label>
+        <div class="field"><label for="reg-password">Mot de passe <small>8 caractères minimum</small></label>
           <input id="reg-password" name="password" type="password" autocomplete="new-password" required>
           <p class="err" data-err="password"></p></div>
         <p class="err form-err" data-err="_form"></p>
-        <button class="btn primary" type="submit">Créer mon compte</button>
+        <button class="btn primary block" type="submit">Créer mon compte</button>
       </form>
     </section>
   </main>
@@ -50,10 +53,17 @@
   <!-- ============ APPLICATION ============ -->
   <div id="view-app" hidden>
     <header class="topbar">
-      <a class="brand" href="#/tasks"><span class="brand-chip" aria-hidden="true"></span><span class="brand-name">My<span>Elektro</span></span></a>
+      <div class="topbar-left">
+        <a class="brand" href="#/tasks"><span class="brand-chip" aria-hidden="true"></span><span class="brand-name">MyElektro</span></a>
+        <nav class="nav" aria-label="Sections">
+          <a href="#/tasks" data-nav="tasks">Étapes</a>
+          <a href="#/habits" data-nav="habits">Habitudes</a>
+          <a href="#/activity" data-nav="activity">Activité</a>
+        </nav>
+      </div>
       <div class="topbar-right">
         <span id="whoami" class="whoami"></span>
-        <button id="btn-logout" class="btn ghost small">Déconnexion</button>
+        <button id="btn-logout" class="btn ghost small"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span class="btn-label">Déconnexion</span></button>
       </div>
     </header>
 
@@ -63,7 +73,7 @@
   <!-- Modale de confirmation de suppression -->
   <dialog id="dlg-delete" class="dialog">
     <form method="dialog">
-      <h2>Supprimer cette étape ?</h2>
+      <h2 id="dlg-delete-title">Supprimer cette étape ?</h2>
       <p id="dlg-delete-text"></p>
       <div class="dialog-actions">
         <button class="btn ghost" value="cancel">Annuler</button>

@@ -64,11 +64,35 @@ window.Api = (function () {
   const unwrapList = (d) => (Array.isArray(d) ? d : d && d.tasks) || [];
   const unwrapOne = (d) => (d && d.task) || d;
 
+  /** Fuseau du navigateur (ex. Europe/Paris) : « aujourd'hui » et « en retard » sont jugés comme l'utilisateur les voit. */
+  const tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  /** Ajoute une chaîne de requête en ignorant les paramètres vides. */
+  function withQuery(path, params = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '' && v !== false) qs.set(k, String(v));
+    }
+    const str = qs.toString();
+    return str ? `${path}?${str}` : path;
+  }
+  const id = (x) => encodeURIComponent(x);
+
   return {
-    getToken, getUser, setSession, clearSession,
+    getToken, getUser, setSession, clearSession, tz,
     register: (body) => request('POST', '/auth/register', body),
     login: (body) => request('POST', '/auth/login', body),
-    listTasks: async () => unwrapList(await request('GET', '/tasks')),
+    listTasks: async (params = {}) => unwrapList(await request('GET', withQuery('/tasks', { ...params, tz: tz() }))),
+    // Bonus B1, B3, B4 : statistiques calculées par MongoDB
+    summary: () => request('GET', withQuery('/stats/summary', { tz: tz() })),
+    heatmap: () => request('GET', withQuery('/stats/heatmap', { tz: tz() })),
+    weekly: (weeks = 12) => request('GET', withQuery('/stats/weekly', { weeks, tz: tz() })),
+    // Bonus B2 : habitudes
+    listHabits: () => request('GET', withQuery('/habits', { tz: tz() })),
+    createHabit: (body) => request('POST', '/habits', body),
+    deleteHabit: (habitId) => request('DELETE', `/habits/${id(habitId)}`),
+    listCompletions: (habitId, from, to) => request('GET', withQuery(`/habits/${id(habitId)}/completions`, { from, to })),
+    checkHabit: (habitId, date) => request('PUT', `/habits/${id(habitId)}/completions/${date}`),
+    uncheckHabit: (habitId, date) => request('DELETE', `/habits/${id(habitId)}/completions/${date}`),
     getTask: async (id) => unwrapOne(await request('GET', `/tasks/${encodeURIComponent(id)}`)),
     createTask: async (body) => unwrapOne(await request('POST', '/tasks', body)),
     updateTask: async (id, body) => unwrapOne(await request('PUT', `/tasks/${encodeURIComponent(id)}`, body)),
