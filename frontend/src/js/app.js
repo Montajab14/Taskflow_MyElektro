@@ -37,6 +37,10 @@
     search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
     down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+    eye: '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
+    eyeOff: '<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c4.5 0 8.34 2.77 9.94 6.65a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2.06 11.65a1 1 0 0 0 0 .7C3.66 16.23 7.5 19 12 19a9.74 9.74 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/><path d="M9.88 9.88a3 3 0 0 0 4.24 4.24"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   };
   function icon(name) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -120,8 +124,66 @@
     if (first) first.focus();
   }
 
+  // ---------- Champ mot de passe : icône œil et checklist des règles ----------
+  /** Entoure le champ d'un conteneur et ajoute le bouton qui affiche ou masque le mot de passe. */
+  function addPasswordToggle(input) {
+    const wrap = h('div', { class: 'pw-wrap' });
+    input.replaceWith(wrap);
+    const btn = h('button', {
+      type: 'button', class: 'pw-toggle', 'aria-label': 'Afficher le mot de passe', 'aria-pressed': 'false',
+      onclick: () => {
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', String(show));
+        btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+        btn.replaceChildren(icon(show ? 'eyeOff' : 'eye'));
+      },
+    }, icon('eye'));
+    wrap.append(input, btn);
+    return wrap;
+  }
+
+  /** Remet tous les champs mot de passe du formulaire en mode masqué. */
+  function hidePasswords(form) {
+    form.querySelectorAll('.pw-wrap').forEach((wrap) => {
+      const input = $('input', wrap);
+      if (input.type === 'password') return;
+      input.type = 'password';
+      const btn = $('.pw-toggle', wrap);
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Afficher le mot de passe');
+      btn.replaceChildren(icon('eye'));
+    });
+  }
+
+  /** Liste des règles sous le champ : ✗ tant que la règle n'est pas respectée, ✓ dès qu'elle l'est. */
+  function addPasswordChecklist(input, after) {
+    const list = h('ul', { class: 'pw-rules', id: 'pw-rules', 'aria-label': 'Conditions du mot de passe' });
+    const draw = () => list.replaceChildren(...Validate.passwordChecks(input.value).map((c) =>
+      h('li', { class: c.ok ? 'ok' : 'ko' },
+        icon(c.ok ? 'check' : 'x'),
+        h('span', {}, c.label),
+        h('span', { class: 'sr-only' }, c.ok ? ' : respectée' : ' : non respectée'))));
+    input.addEventListener('input', () => {
+      draw();
+      // L'erreur du dernier envoi disparaît dès que l'utilisateur retape son mot de passe
+      input.classList.remove('invalid');
+      const err = input.closest('.field').querySelector('[data-err="password"]');
+      if (err) err.textContent = '';
+    });
+    input.form.addEventListener('reset', () => setTimeout(() => { list.classList.remove('submitted'); draw(); }));
+    input.setAttribute('aria-describedby', 'pw-rules');
+    draw();
+    after.after(list);
+    return list;
+  }
+
   // ---------- Authentification ----------
   function setupAuth() {
+    addPasswordToggle($('#login-password'));
+    const regWrap = addPasswordToggle($('#reg-password'));
+    const rules = addPasswordChecklist($('#reg-password'), regWrap);
+
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         const isLogin = tab.dataset.tab === 'login';
@@ -140,7 +202,10 @@
       const body = Object.fromEntries(new FormData(form).entries());
       if (!body.name) delete body.name;
       const errors = Validate.validateCredentials(body, { isRegister });
-      if (errors.length) return showErrors(form, errors);
+      if (errors.length) {
+        if (isRegister && errors.some((er) => er.field === 'password')) rules.classList.add('submitted');
+        return showErrors(form, errors);
+      }
       showErrors(form, []);
       const btn = form.querySelector('button[type=submit]');
       btn.disabled = true;
@@ -148,6 +213,7 @@
         const session = await (isRegister ? Api.register(body) : Api.login(body));
         Api.setSession(session);
         form.reset();
+        hidePasswords(form);
         location.hash = '#/tasks';
         route();
       } catch (err) {

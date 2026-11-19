@@ -36,6 +36,22 @@
     return { errors, value: { title, status: input.status, priority, description, dueDate } };
   }
 
+  // Règles du mot de passe à l'inscription (la checklist de l'interface les affiche une par une).
+  // « Caractère spécial » : ni lettre (accentuée ou non), ni chiffre, ni espace.
+  const PASSWORD_RULES = [
+    { id: 'length', label: '8 caractères minimum', test: (p) => p.length >= 8 },
+    { id: 'upper', label: 'Une majuscule', test: (p) => /\p{Lu}/u.test(p) },
+    { id: 'digit', label: 'Un chiffre', test: (p) => /\d/.test(p) },
+    { id: 'special', label: 'Un caractère spécial (! ? # @ …)', test: (p) => /[^\p{L}\p{N}\s]/u.test(p) },
+  ];
+  const PASSWORD_WEAK_MESSAGE = 'Très bof le mot de passe.';
+
+  /** [{ id, label, ok }] : l'état de chaque règle pour ce mot de passe. */
+  function passwordChecks(password) {
+    const value = typeof password === 'string' ? password : '';
+    return PASSWORD_RULES.map(({ id, label, test }) => ({ id, label, ok: test(value) }));
+  }
+
   function validateCredentials({ email, password, name }, { isRegister }) {
     const errors = [];
     if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -43,8 +59,9 @@
     }
     if (!password) {
       errors.push({ field: 'password', message: 'Le mot de passe est obligatoire.' });
-    } else if (isRegister && password.length < 8) {
-      errors.push({ field: 'password', message: 'Au moins 8 caractères.' });
+    } else if (isRegister && !passwordChecks(password).every((c) => c.ok)) {
+      // Seulement à l'inscription : à la connexion, les comptes existants restent acceptés.
+      errors.push({ field: 'password', message: PASSWORD_WEAK_MESSAGE });
     }
     if (isRegister && name && (name.trim().length < 2 || name.trim().length > 60)) {
       errors.push({ field: 'name', message: 'Le nom doit contenir entre 2 et 60 caractères.' });
@@ -52,7 +69,7 @@
     return errors;
   }
 
-  const api = { STATUSES, PRIORITIES, isRealDate, validateTask, validateCredentials };
+  const api = { STATUSES, PRIORITIES, isRealDate, validateTask, validateCredentials, passwordChecks };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Validate = api;
 })(typeof window !== 'undefined' ? window : globalThis);

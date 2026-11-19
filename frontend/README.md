@@ -40,6 +40,9 @@ Tâche d'un autre utilisateur : `404`. L'édition utilise `PUT` (corps complet) 
 
 Bonus utilisés : `GET /stats/summary`, `GET /stats/heatmap`, `GET /stats/weekly?weeks=12`, `GET|POST /habits`, `DELETE /habits/:id`, `GET /habits/:id/completions?from=&to=`, `PUT|DELETE /habits/:id/completions/:date`.
 
+## Mot de passe (inscription)
+Quatre règles, affichées en checklist sous le champ (✗ puis ✓ en direct) : 8 caractères minimum, une majuscule, un chiffre, un caractère spécial. Si elles ne sont pas toutes respectées : « Très bof le mot de passe. ». L'œil affiche ou masque le mot de passe (inscription et connexion). À la connexion, aucune règle n'est imposée, pour ne pas bloquer les comptes existants. Règles définies dans `src/js/validate.js` (`PASSWORD_RULES`).
+
 ## Statuts
 Valeurs envoyées à l'API : `todo`, `doing`, `done`. Libellés affichés : À faire / Sur le bench / Validé (`STATUS_LABELS` dans `src/js/app.js`).
 

@@ -16,7 +16,7 @@ function checkPassword(password, errors, { checkStrength }) {
   if (typeof password !== 'string' || password.length === 0) {
     errors.push({ field: 'password', message: 'Le mot de passe est obligatoire' });
   } else if (checkStrength && password.length < PASSWORD_MIN) {
-    errors.push({ field: 'password', message: `Le mot de passe doit contenir au moins ${PASSWORD_MIN} caractères` });
+    errors.push({ field: 'password', message: `Le mot de passe très bof. Il doit contenir au moins ${PASSWORD_MIN} caractères` });
   } else if (Buffer.byteLength(password) > PASSWORD_MAX) {
     errors.push({ field: 'password', message: `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX} octets` });
   }

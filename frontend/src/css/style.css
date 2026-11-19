@@ -361,6 +361,23 @@ dd.date { font-family: var(--mono); font-size: 14px; font-variant-numeric: tabul
 .week-label { overflow: hidden; white-space: nowrap; text-align: center; color: var(--muted); font-family: var(--mono); font-size: 11px; line-height: 20px; font-variant-numeric: tabular-nums; }
 .week.current .week-label { color: var(--text); }
 
+/* ---------- Mot de passe : œil et checklist ---------- */
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 44px; }
+.pw-toggle {
+  position: absolute; top: 0; right: 0; width: 40px; height: 40px;
+  display: grid; place-items: center; padding: 0;
+  background: none; border: 0; border-radius: var(--r-control); color: var(--muted); cursor: pointer;
+  transition: color 150ms var(--ease);
+}
+.pw-toggle:hover { color: var(--text); }
+.pw-toggle:focus-visible { outline: none; color: var(--copper-ink); box-shadow: 0 0 0 3px rgba(208, 138, 85, 0.22); }
+.pw-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pw-rules li { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 20px; color: var(--muted); transition: color 150ms var(--ease); }
+.pw-rules li.ok { color: var(--led-done); }
+.pw-rules li.ko .icon { stroke-width: 2; }
+.pw-rules.submitted li.ko { color: #f0787b; }
+
 /* ---------- Petits écrans ---------- */
 @media (max-width: 640px) {
   .topbar { padding: 0 16px; }
