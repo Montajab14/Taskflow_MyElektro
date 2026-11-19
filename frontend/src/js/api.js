@@ -60,7 +60,6 @@ window.Api = (function () {
     }
   }
 
-  // Tolère { tasks: [...] } / { task: {...} } en plus des formes directes.
   const unwrapList = (d) => (Array.isArray(d) ? d : d && d.tasks) || [];
   const unwrapOne = (d) => (d && d.task) || d;
 
@@ -91,8 +90,8 @@ window.Api = (function () {
     createHabit: (body) => request('POST', '/habits', body),
     deleteHabit: (habitId) => request('DELETE', `/habits/${id(habitId)}`),
     listCompletions: (habitId, from, to) => request('GET', withQuery(`/habits/${id(habitId)}/completions`, { from, to })),
-    checkHabit: (habitId, date) => request('PUT', `/habits/${id(habitId)}/completions/${date}`),
-    uncheckHabit: (habitId, date) => request('DELETE', `/habits/${id(habitId)}/completions/${date}`),
+    checkHabit: (habitId, date) => request('PUT', withQuery(`/habits/${id(habitId)}/completions/${date}`, { tz: tz() })),
+    uncheckHabit: (habitId, date) => request('DELETE', withQuery(`/habits/${id(habitId)}/completions/${date}`, { tz: tz() })),
     getTask: async (id) => unwrapOne(await request('GET', `/tasks/${encodeURIComponent(id)}`)),
     createTask: async (body) => unwrapOne(await request('POST', '/tasks', body)),
     updateTask: async (id, body) => unwrapOne(await request('PUT', `/tasks/${encodeURIComponent(id)}`, body)),
