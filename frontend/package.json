@@ -1,18 +1,37 @@
 {
   "name": "myelektro-frontend",
-  "version": "1.0.0",
-  "description": "MyElektro - front : suivi des étapes de projets électroniques",
-  "main": "src/index.js",
-  "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+  "version": "2.0.0",
+  "private": true,
+  "description": "MyElektro - front React : suivi des étapes de projets électroniques",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
   },
-  "keywords": [
-    "myelektro",
-    "taskflow",
-    "javascript"
-  ],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 3000",
+    "start": "vite build && node serve.cjs",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^8.0.0",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.13",
+    "@vitejs/plugin-react": "^6.3.0",
+    "eslint": "^10.15.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.8",
+    "globals": "^17.14.0",
+    "jsdom": "^31.0.1",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
 }

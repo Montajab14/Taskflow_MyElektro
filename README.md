@@ -4,7 +4,7 @@ Application web de gestion de tâches : chaque utilisateur crée un compte, se c
 
 | Partie | Technologies | Dossier |
 | --- | --- | --- |
-| Front | HTML, CSS et JavaScript natifs, serveur Node.js | [`frontend/`](frontend/README.md) |
+| Front | React 19 + Vite, servi par un petit serveur Node.js | [`frontend/`](frontend/README.md) |
 | API | Node.js 20+, Express 5, Mongoose, JWT, bcrypt, Swagger | [`backend/`](backend/README.md) |
 | Base de données | MongoDB 7 | lancée par `docker-compose.yml` |
 | Tests | Jest, Supertest, mongodb-memory-server (166 tests) | `backend/tests/` |
@@ -83,7 +83,9 @@ npm run dev                          # API sur http://localhost:3001
 npm test                             # 166 tests, sans base à installer
 
 cd ../frontend
-npm start                            # front sur http://localhost:3000
+npm install
+npm run dev                          # front sur http://localhost:5173 (rechargement à chaud)
+npm test                             # tests Vitest
 ```
 
 Les détails sont dans [`backend/README.md`](backend/README.md) et [`frontend/README.md`](frontend/README.md).

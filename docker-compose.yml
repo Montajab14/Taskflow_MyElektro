@@ -39,10 +39,14 @@ services:
       - taskflow-network
 
   # -----------------------------------------------------------
-  # 3. Front (HTML/CSS/JS servi par Node.js, dossier frontend/)
+  # 3. Front (React + Vite compilé, servi par Node.js, dossier frontend/)
   # -----------------------------------------------------------
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # L'URL de l'API est figée à la compilation (le navigateur de l'utilisateur appelle l'API directement)
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001/api}
     container_name: taskflow-frontend
     restart: always
     ports:
@@ -50,9 +54,6 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-    volumes:
-      # Synchronisation du code en direct : une modification du front est visible sans rebuild
-      - ./frontend/src:/app/src
     depends_on:
       - api
     networks:
